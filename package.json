@@ -1,0 +1,24 @@
+{
+  "name": "frontier",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest run --passWithNoTests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/siddvoh/frontier.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/siddvoh/frontier/issues"
+  },
+  "homepage": "https://github.com/siddvoh/frontier#readme",
+  "devDependencies": {
+    "vitest": "^4.1.10"
+  }
+}
