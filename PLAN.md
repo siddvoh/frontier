@@ -20,6 +20,11 @@ Standing rules for every slice (from SPEC):
   C35 attribution link to https://epoch.ai (C2).
 - Test fixtures live under a per-slice directory `tests/fixtures/<slice>/` so
   same-wave slices never collide on fixture paths (C48).
+- Any slice touching docs/css or a docs/js/views file must run `npm run
+  shots` after the change and visually inspect the relevant PNGs in shots/
+  before flipping its box: a layout defect visible in a screenshot means the
+  slice is NOT done, even if npm test is green. The test gate itself is
+  untouched: playwright stays out of npm test (C7, C54).
 
 ## Wave 1: foundation (runnable skeleton, tokens, validator, fetch)
 
@@ -98,6 +103,49 @@ Standing rules for every slice (from SPEC):
   - Verified by execution only: `npx playwright install chromium && npm run shots` exits 0 and the output directory holds exactly 16 PNGs (C53, done-item 4)
   - By construction the harness is referenced by no test file and no workflow, and tests/ contains none of the banned strings; the critic grep for C7 and C54 passes
   - tests/w4s3.test.js covers adjacent hygiene without the banned strings: `docs/` contains no `gradient(`, no `@font-face`, no `fonts.googleapis`, no `.woff`, no `node_modules` reference, and `Math.random` appears nowhere in scripts/ or docs/js/ (C42, C40, C5, C19)
+
+## Wave 5: visual defect remediation (from 2026-07-13 screenshot + live-UI audit)
+
+Defects diagnosed by running `npm run shots`, inspecting all 16 PNGs, and
+driving the served site with a real browser. Dark mode was explicitly
+compared against light across all four routes: the PNGs differ correctly
+(dark tokens apply), so there is no dark-mode defect slice. W5.S1 defines
+the CSS class contract (class names listed in its bullets); the view slices
+emit those class names in markup. Each slice's own tests are independently
+runnable under jsdom without S1's CSS; the combined visual result is
+verified by the standing shots rule and the critic. All six slices are
+file-disjoint.
+
+- [ ] W5.S1 | files: docs/css/styles.css, tests/w5s1.test.js | stylesheet remediation: motion scoping, token-styled controls, layout classes for all views
+  - Motion: transitions exist only for `color` and `border-color` on links and form controls; the `button` opacity transition and `tbody tr` background transition are removed (they read as flicker on hover and re-render); the single `--dur`/`ease-out` and reduced-motion rules of C46 stay intact
+  - Form controls stop looking user-agent-default: inputs, selects, textareas, buttons, and checkboxes are styled from tokens only (background `--surface-solid`, text `--ink`, hairline borders, radius tokens, accent-colored `:focus-visible` ring, primary button in `--accent`); C36 grep still finds no raw colors outside tokens.css
+  - New layout classes, consumed by the view slices: `.table-scroll` (overflow-x auto wrapper so the page body NEVER scrolls horizontally at 375px), `.filter-bar` (single-row control grid at >=720px, stacked below), `.nowrap` (dates), `.bar-row` 3-column grid (name / bar / value, aligned), `.tray-docked` (compare tray: bottom sheet below 720px, right-docked panel >=720px, plus a main-content clearance rule so the tray never covers bars), `.overlay-scrim` (fixed full-viewport dim layer under `#model-overlay`: `background: var(--ink)` with an opacity property, no new tokens, no new glass), `.timeline-track` with two label lanes and a hairline axis
+  - All W1.S2 checks keep passing unweakened: token-only sizes/spacing/radii, no `gradient(`, `box-shadow` and `backdrop-filter` counts unchanged, only width media query `min-width: 720px` (C36, C40, C41, C42, C43, C44, C45, C46, C47)
+- [ ] W5.S2 | files: docs/js/views/timeline.js, tests/w5s2.test.js | timeline dot layout: clamped labels, collision lanes, visible markers
+  - Root defect: six 2026-era dots and both event markers compute to left 97-100 percent and render past the strip's right edge (measured x about 3100px in a 1014px strip), five of them at the identical x; the strip shows only the GPT-4 label
+  - Keep the exact C34 linear mapping from 2023-03-01 to `generatedAt`, but anchor labels so they stay inside the track (labels in the right half translate left of their dot), and assign colliding dots (within 2 percent of each other) to distinct stacked lanes so no two labels overlap
+  - Event markers must be visible inside the track at their C34 positions and still reveal title and body on click; dot click still navigates to `#/model/:id` (C34)
+  - jsdom test asserts: C34 offsets unchanged for fixture dates, no label's computed left+anchor extends past 100 percent, the five same-x fixtures get distinct lanes, and marker elements are present inside the track
+- [ ] W5.S3 | files: docs/js/main.js, docs/js/views/model.js, tests/w5s3.test.js | model overlay over live catalog with scrim and readable values
+  - Root defect: `#/model/:id` replaces the app content, so the "overlay" floats over an empty page with the footer showing through at the top; there is no dim layer behind the panel
+  - main.js renders the catalog view beneath, then the overlay above it, at `#/model/:id`; an `.overlay-scrim` element sits between them; Close (and scrim click) returns to `#/catalog`; main.js stays the single fetch site (C29, C31)
+  - model.js: definition list aligns label and value in two columns at >=720px; Parameters and Training compute render via locale/exponent formatting of the stored value (display formatting only, the value itself is never altered or defaulted, C19); nulls still render MISSING (C20)
+  - jsdom test asserts: at the model route the app contains BOTH the catalog table and `#model-overlay`, the scrim element exists, formatted numbers appear (e.g. "1,800,000,000,000"), and existing W3.S2 provenance/events assertions keep passing (C31)
+- [ ] W5.S4 | files: docs/js/views/catalog.js, tests/w5s4.test.js | catalog table containment and control layout
+  - Root defect: the 731px-wide table sits directly in the view with no scroll container, so the whole page scrolls horizontally at 375px (document scrollWidth 748) and the sticky header appears cut off mid-page
+  - Wrap the table in a `.table-scroll` container; release-date cells get `.nowrap` so dates stop wrapping to "2026-07-" / "09"; numeric columns get `font-variant-numeric: tabular-nums` via a class S1 provides
+  - Filter controls emit `.filter-bar` markup in a deliberate order (search, organization, open-weights, sort, direction) instead of the current grid with orphaned cells and a floating checkbox (C30, C35 labels unchanged)
+  - jsdom test asserts the wrapper class around the table, the nowrap class on date cells, the control order, and all existing W3.S1 filter/sort assertions keep passing (C30)
+- [ ] W5.S5 | files: docs/js/views/compare.js, tests/w5s5.test.js | compare bars alignment and docked tray
+  - Root defects: the fixed tray covers the GPQA and SWE-bench bar rows (hit-testing the tray's center finds a `.bar-row` under it) and sits mid-content on mobile; null rows render as run-on text "GPT-4—" with the dash glued to the label
+  - Bar rows emit the `.bar-row` 3-column structure: name cell, bar cell, value cell as separate elements; a null metric renders name cell + MISSING in the value cell with an empty bar cell, never a concatenated string (C32, C20)
+  - The tray emits `.tray-docked` markup: a collapsed one-line summary ("2 of 3 selected") that expands on toggle; 3-model cap and `#compare-tray` glass identity unchanged (C32, C43)
+  - jsdom test asserts: name, bar, and value are sibling cells (no text run-ons), null rows have no bar element, the tray renders collapsed by default with a working toggle, and the 4th-selection cap still holds (C32)
+- [ ] W5.S6 | files: docs/js/views/scenario.js, tests/w5s6.test.js | scenario form grid and honest empty state
+  - Root defects: nine full-width stacked fields make a sparse wall at 1440px with a floating checkbox, and a summary line of em dashes ("Budget —/mo · task — · ...") renders before the user has entered anything
+  - Form emits `.form-grid` markup: budget/task and the two volumes paired at >=720px, the four constraints grouped in a labeled fieldset, the checkbox inline with its label (C33, C35)
+  - The scenario summary line renders only after a scenario has been run; the initial state shows just the prompt box; results and exclusion sections unchanged (C33)
+  - jsdom test asserts: fieldset grouping and pairing classes present, no summary element on initial render, summary present after a run, and all W3.S4 ranking/formula/exclusion assertions keep passing (C33, C26, C27)
 
 ## Criterion-to-slice map (audit)
 
