@@ -60,8 +60,13 @@ Three input files live in `data/`. Two are human-edited only.
   "Notable AI Models" dataset (CC-BY 4.0), fetched by `scripts/fetch-epoch.js`
   from `https://epoch.ai/data/notable_ai_models.csv`.
   Check: file exists, is parseable CSV with a header row (test).
-- C10. `data/curated.json` is hand-entered by the repository owner from
-  official lab pricing and announcement pages. It is ground truth. The agent
+- C10. `data/curated.json` values are hand-verified by the repository owner
+  from official lab pricing/announcement pages OR from a named independent
+  leaderboard (vals.ai, epoch.ai, artificialanalysis.ai), with a source URL
+  recorded per value in `data/curated-sources.md`. Zero invented or
+  estimated numbers. Conflicting sources are never averaged: both readings
+  are recorded in curated-sources.md and the field stays null until the
+  owner decides. curated.json is ground truth. The agent
   loop must never create, edit, extend, or "fix" `data/curated.json` or
   `data/events.json`; if either is missing or schema-invalid, the pipeline
   fails loudly and the loop records the blockage instead of working around it.
@@ -463,7 +468,8 @@ Model `id` values are unique (validator check). Models sorted by `id` (C18).
 
 The repository owner supplies `data/curated.json` (target: about 40 models,
 and at minimum the anchors `gpt-4`, `claude-fable-5`, `muse-spark-1.1`,
-`gpt-5.6`, `grok-4.5`) and `data/events.json` (at least one event). The loop
+`gpt-5.6-sol`, `grok-4.5`; GPT-5.6's Sol/Terra/Luna tiers are separate
+records with separate prices, grouped only by their shared name prefix) and `data/events.json` (at least one event). The loop
 builds and tests against fixtures (C48), so code correctness never depends on
 the live data being complete. If the committed curated.json is a small seed,
 swapping in the full file later is a data-only change with no code edits.

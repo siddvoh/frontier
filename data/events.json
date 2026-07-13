@@ -1,0 +1,16 @@
+[
+  {
+    "id": "fable-5-export-suspension",
+    "date": "2026-06-12",
+    "title": "Claude Fable 5 suspended under US export controls",
+    "body": "On June 12, 2026, the US government applied export controls to Claude Fable 5 and Claude Mythos 5, requiring Anthropic to cut off access for any foreign national, inside or outside the United States. With no reliable way to verify every user's nationality in real time, Anthropic shut both models down for everyone, effective immediately. The order followed a report by Amazon researchers describing a jailbreak technique that bypassed Fable 5's safety rules.",
+    "modelIds": ["claude-fable-5"]
+  },
+  {
+    "id": "fable-5-restoration",
+    "date": "2026-07-01",
+    "title": "Claude Fable 5 restored as export controls are lifted",
+    "body": "On June 30, 2026, the US Commerce Department lifted the export controls imposed on Claude Fable 5 and Claude Mythos 5, and Anthropic redeployed Fable 5 on July 1 across Claude.ai, the Claude Platform, Claude Code, and Claude Cowork. Working with the government, Anthropic shipped an improved safety classifier that it says blocks the jailbreak technique described in the Amazon report in over 99% of cases.",
+    "modelIds": ["claude-fable-5"]
+  }
+]

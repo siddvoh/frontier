@@ -1,0 +1,128 @@
+[
+  {
+    "id": "gpt-4",
+    "name": "GPT-4",
+    "organization": "OpenAI",
+    "releaseDate": null,
+    "epochName": "GPT-4 (Mar 2023)",
+    "pricing": {
+      "inputPerMTok": 30,
+      "outputPerMTok": 60,
+      "currency": "USD"
+    },
+    "contextWindow": 8192,
+    "benchmarks": {
+      "gpqaDiamond": null,
+      "swebenchVerified": null
+    },
+    "openWeights": false
+  },
+  {
+    "id": "claude-fable-5",
+    "name": "Claude Fable 5",
+    "organization": "Anthropic",
+    "releaseDate": "2026-06-09",
+    "epochName": "Claude Fable 5",
+    "pricing": {
+      "inputPerMTok": 10,
+      "outputPerMTok": 50,
+      "currency": "USD"
+    },
+    "contextWindow": 1000000,
+    "benchmarks": {
+      "gpqaDiamond": 93.18,
+      "swebenchVerified": 95.0
+    },
+    "openWeights": false
+  },
+  {
+    "id": "muse-spark-1.1",
+    "name": "Muse Spark 1.1",
+    "organization": "Meta",
+    "releaseDate": "2026-07-09",
+    "epochName": null,
+    "pricing": {
+      "inputPerMTok": null,
+      "outputPerMTok": null,
+      "currency": "USD"
+    },
+    "contextWindow": 1000000,
+    "benchmarks": {
+      "gpqaDiamond": null,
+      "swebenchVerified": null
+    },
+    "openWeights": null
+  },
+  {
+    "id": "gpt-5.6-sol",
+    "name": "GPT-5.6 Sol",
+    "organization": "OpenAI",
+    "releaseDate": "2026-07-09",
+    "epochName": null,
+    "pricing": {
+      "inputPerMTok": 5,
+      "outputPerMTok": 30,
+      "currency": "USD"
+    },
+    "contextWindow": 1050000,
+    "benchmarks": {
+      "gpqaDiamond": null,
+      "swebenchVerified": null
+    },
+    "openWeights": false
+  },
+  {
+    "id": "gpt-5.6-terra",
+    "name": "GPT-5.6 Terra",
+    "organization": "OpenAI",
+    "releaseDate": "2026-07-09",
+    "epochName": null,
+    "pricing": {
+      "inputPerMTok": 2.5,
+      "outputPerMTok": 15,
+      "currency": "USD"
+    },
+    "contextWindow": 1050000,
+    "benchmarks": {
+      "gpqaDiamond": null,
+      "swebenchVerified": null
+    },
+    "openWeights": false
+  },
+  {
+    "id": "gpt-5.6-luna",
+    "name": "GPT-5.6 Luna",
+    "organization": "OpenAI",
+    "releaseDate": "2026-07-09",
+    "epochName": null,
+    "pricing": {
+      "inputPerMTok": 1,
+      "outputPerMTok": 6,
+      "currency": "USD"
+    },
+    "contextWindow": 1050000,
+    "benchmarks": {
+      "gpqaDiamond": null,
+      "swebenchVerified": null
+    },
+    "openWeights": false
+  },
+  {
+    "id": "grok-4.5",
+    "name": "Grok 4.5",
+    "organization": "SpaceXAI",
+    "releaseDate": "2026-07-08",
+    "epochName": null,
+    "pricing": {
+      "inputPerMTok": 2,
+      "outputPerMTok": 6,
+      "currency": "USD"
+    },
+    "contextWindow": 500000,
+    "benchmarks": {
+      "gpqaDiamond": 92.93,
+      "swebenchVerified": 86.6
+    },
+    "openWeights": false
+  }
+]
