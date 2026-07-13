@@ -41,7 +41,7 @@ EOF
 if [ "$MODE" = plan ]; then
   for i in 1 2 3 4 5; do
     grep -q 'PLAN-READY' PLAN.md 2>/dev/null && { echo "plan ready"; exit 0; }
-    claude -p "$PLAN_PROMPT" --permission-mode auto > .sidd/build_$i.log 2>&1
+    claude -p "$PLAN_PROMPT" --permission-mode auto > .sidd/plan_$i.log 2>&1
     sleep 2
   done
   grep -q 'PLAN-READY' PLAN.md && exit 0
@@ -52,6 +52,6 @@ fi
 while true; do
   [ -f .sidd/STOP ] && exit 0
   [ -f .sidd/APPROVED ] && echo done && exit 0
-  claude -p "$PLAN_PROMPT" --permission-mode auto > .sidd/plan_$i.log 2>&1
+  claude -p "$BUILD_PROMPT" --permission-mode auto > .sidd/build_$i.log 2>&1
   sleep 2
 done
