@@ -1,0 +1,9 @@
+[
+  {
+    "id": "alpha-launch",
+    "date": "2024-05-02",
+    "title": "Alpha One launches",
+    "body": "Alpha Lab releases Alpha One with open weights.",
+    "modelIds": ["alpha-one"]
+  }
+]

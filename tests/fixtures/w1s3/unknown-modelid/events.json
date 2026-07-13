@@ -1,0 +1,9 @@
+[
+  {
+    "id": "ghost-launch",
+    "date": "2024-06-01",
+    "title": "Ghost model event",
+    "body": "This event references a model id that does not exist.",
+    "modelIds": ["ghost-model"]
+  }
+]

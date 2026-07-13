@@ -1,0 +1,384 @@
+/* Frontier base stylesheet.
+   Every color is a var() reference into tokens.css (C36).
+   Font sizes only via --text-* tokens (C40); spacing only via --sp-* tokens,
+   0, or auto (C41); radii only --r-s / --r-m (C41); no gradients (C42);
+   glass per C43-C45; motion per C46; single 720px breakpoint (C47). */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: var(--text-2);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Typography */
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: var(--lh-head);
+  margin: 0 0 var(--sp-3);
+}
+
+h1 {
+  font-size: var(--text-5);
+}
+
+h2 {
+  font-size: var(--text-4);
+}
+
+h3 {
+  font-size: var(--text-3);
+}
+
+h4 {
+  font-size: var(--text-2);
+}
+
+p {
+  margin: 0 0 var(--sp-4);
+}
+
+small,
+.muted {
+  color: var(--muted);
+  font-size: var(--text-1);
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color var(--dur) ease-out;
+}
+
+a:hover,
+a:focus-visible {
+  text-decoration: underline;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--hairline);
+  margin: var(--sp-5) 0;
+}
+
+code {
+  font-size: var(--text-1);
+  color: var(--muted);
+}
+
+/* Layout */
+
+#site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--hairline);
+}
+
+#site-header h1 {
+  font-size: var(--text-3);
+  margin: 0;
+}
+
+#site-header nav {
+  display: flex;
+  gap: var(--sp-3);
+}
+
+#app {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: var(--sp-4);
+}
+
+footer {
+  color: var(--muted);
+  font-size: var(--text-1);
+  border-top: 1px solid var(--hairline);
+  margin: var(--sp-6) 0 0;
+  padding: var(--sp-4);
+}
+
+/* Forms */
+
+label {
+  display: block;
+  font-size: var(--text-1);
+  color: var(--muted);
+  margin: 0 0 var(--sp-1);
+}
+
+input,
+select,
+textarea {
+  display: block;
+  width: 100%;
+  font-family: var(--font-text);
+  font-size: var(--text-2);
+  line-height: var(--lh-body);
+  color: var(--ink);
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-s);
+  padding: var(--sp-2) var(--sp-3);
+  margin: 0 0 var(--sp-3);
+  transition: border-color var(--dur) ease-out;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  display: inline-block;
+  width: auto;
+  margin: 0 var(--sp-1) 0 0;
+  accent-color: var(--accent);
+}
+
+fieldset {
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-s);
+  padding: var(--sp-3);
+  margin: 0 0 var(--sp-4);
+}
+
+legend {
+  font-size: var(--text-1);
+  color: var(--muted);
+  padding: 0 var(--sp-1);
+}
+
+button {
+  font-family: var(--font-text);
+  font-size: var(--text-2);
+  line-height: var(--lh-body);
+  color: var(--bg);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-s);
+  padding: var(--sp-2) var(--sp-4);
+  cursor: pointer;
+  transition: opacity var(--dur) ease-out;
+}
+
+button:hover {
+  opacity: 0.85;
+}
+
+button.ghost {
+  color: var(--ink);
+  background: var(--surface-solid);
+  border-color: var(--hairline);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Tables and rows */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  text-align: left;
+  font-size: var(--text-1);
+  color: var(--muted);
+  font-weight: 500;
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--hairline);
+}
+
+td {
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--hairline);
+}
+
+tbody tr {
+  transition: background var(--dur) ease-out;
+}
+
+tbody tr:hover {
+  background: var(--surface-solid);
+}
+
+/* Cards, badges, panels */
+
+.card {
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-m);
+  padding: var(--sp-4);
+  margin: 0 0 var(--sp-3);
+}
+
+.badge {
+  display: inline-block;
+  font-size: var(--text-1);
+  color: var(--muted);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-s);
+  padding: 0 var(--sp-2);
+}
+
+.bar {
+  height: var(--sp-3);
+  background: var(--accent);
+  border-radius: var(--r-s);
+}
+
+.bar-track {
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-s);
+  margin: 0 0 var(--sp-2);
+}
+
+details {
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-s);
+  padding: var(--sp-3);
+  margin: 0 0 var(--sp-4);
+}
+
+summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: var(--text-1);
+}
+
+/* Timeline strip (positioned children come from the view layer) */
+
+.timeline {
+  position: relative;
+  overflow-x: auto;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-m);
+  padding: var(--sp-5) 0;
+  margin: 0 0 var(--sp-5);
+}
+
+/* Floating panels and overlay (glass hosts, C43) */
+
+#compare-tray {
+  position: fixed;
+  bottom: var(--sp-4);
+  left: var(--sp-4);
+  right: var(--sp-4);
+  z-index: 15;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-m);
+  padding: var(--sp-3) var(--sp-4);
+}
+
+#scenario-results {
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-m);
+  padding: var(--sp-4);
+  margin: var(--sp-4) 0 0;
+}
+
+#model-overlay {
+  position: fixed;
+  top: var(--sp-6);
+  left: var(--sp-4);
+  right: var(--sp-4);
+  bottom: var(--sp-6);
+  z-index: 20;
+  overflow-y: auto;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-m);
+  padding: var(--sp-5);
+}
+
+/* Glass (C43, C44, C45): solid fallback base, one shadow declaration,
+   backdrop-filter only inside the single @supports block below. */
+
+.glass {
+  background: var(--surface-solid);
+  box-shadow: var(--shadow-glass);
+}
+
+@supports (backdrop-filter: blur(12px)) {
+  .glass {
+    background: var(--surface-glass);
+    backdrop-filter: blur(var(--blur));
+  }
+}
+
+/* Motion (C46) */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur: 0ms;
+  }
+}
+
+/* Responsive: mobile-first, single breakpoint (C47) */
+
+@media (min-width: 720px) {
+  #app {
+    padding: var(--sp-6);
+  }
+
+  #site-header {
+    padding: var(--sp-3) var(--sp-6);
+  }
+
+  footer {
+    padding: var(--sp-4) var(--sp-6);
+  }
+
+  #compare-tray {
+    left: auto;
+    right: var(--sp-6);
+    max-width: 480px;
+  }
+
+  #model-overlay {
+    left: 0;
+    right: 0;
+    width: 720px;
+    margin: 0 auto;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-4);
+  }
+}

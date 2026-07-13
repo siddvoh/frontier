@@ -1,0 +1,20 @@
+[
+  {
+    "id": "alpha-one",
+    "name": "Alpha One",
+    "organization": "Alpha Lab Curated",
+    "releaseDate": "2024-05-01",
+    "epochName": "Alpha One",
+    "pricing": {
+      "inputPerMTok": 1,
+      "outputPerMTok": 2,
+      "currency": "USD"
+    },
+    "contextWindow": 100000,
+    "benchmarks": {
+      "gpqaDiamond": 50,
+      "swebenchVerified": 60
+    },
+    "openWeights": true
+  }
+]

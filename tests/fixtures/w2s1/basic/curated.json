@@ -1,0 +1,92 @@
+[
+  {
+    "id": "zeta-model",
+    "name": "Zeta Model",
+    "organization": "Zeta Lab",
+    "releaseDate": null,
+    "epochName": "Zeta",
+    "pricing": {
+      "inputPerMTok": 3,
+      "outputPerMTok": 9,
+      "currency": "USD"
+    },
+    "contextWindow": 200000,
+    "benchmarks": {
+      "gpqaDiamond": 70.5,
+      "swebenchVerified": null
+    },
+    "openWeights": false
+  },
+  {
+    "id": "alpha-one",
+    "name": "Alpha One",
+    "organization": "Alpha Lab Curated",
+    "releaseDate": "2024-05-01",
+    "epochName": "Alpha One",
+    "pricing": {
+      "inputPerMTok": 1,
+      "outputPerMTok": 2,
+      "currency": "USD"
+    },
+    "contextWindow": 100000,
+    "benchmarks": {
+      "gpqaDiamond": 50,
+      "swebenchVerified": 60
+    },
+    "openWeights": true
+  },
+  {
+    "id": "beta-two",
+    "name": "Beta Two",
+    "organization": "Beta Lab",
+    "releaseDate": null,
+    "epochName": null,
+    "pricing": {
+      "inputPerMTok": null,
+      "outputPerMTok": null,
+      "currency": "USD"
+    },
+    "contextWindow": null,
+    "benchmarks": {
+      "gpqaDiamond": null,
+      "swebenchVerified": null
+    },
+    "openWeights": null
+  },
+  {
+    "id": "gamma-three",
+    "name": "Gamma Three",
+    "organization": "Gamma Lab",
+    "releaseDate": null,
+    "epochName": "GAMMA THREE",
+    "pricing": {
+      "inputPerMTok": 4,
+      "outputPerMTok": 8,
+      "currency": "USD"
+    },
+    "contextWindow": 32000,
+    "benchmarks": {
+      "gpqaDiamond": null,
+      "swebenchVerified": 40
+    },
+    "openWeights": false
+  },
+  {
+    "id": "delta-four",
+    "name": "Delta Four",
+    "organization": "Delta Lab",
+    "releaseDate": null,
+    "epochName": "Delta Four",
+    "pricing": {
+      "inputPerMTok": null,
+      "outputPerMTok": null,
+      "currency": "USD"
+    },
+    "contextWindow": null,
+    "benchmarks": {
+      "gpqaDiamond": null,
+      "swebenchVerified": null
+    },
+    "openWeights": null
+  }
+]

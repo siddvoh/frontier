@@ -1,0 +1,6 @@
+Model,Publication date,Parameters,Training compute (FLOP),Organization,Notability criteria
+Alpha One,2024-01-01,1000000000,1.5e+24,Alpha Lab Epoch,Highly cited
+"Zeta",2023-06-15,2.5e+9,3e+23,"Zeta, Inc",Frontier
+Gamma Three,2024-02-02,5000000,4e+22,Gamma Corp,Frontier
+Delta Four,,,,,
+Unmatched Model,2024-03-03,7000000,7e+22,Someone Else,Frontier

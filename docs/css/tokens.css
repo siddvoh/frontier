@@ -1,0 +1,58 @@
+/* Frontier design tokens (C36-C41, C46).
+   All raw color values in docs/ live in this file only. */
+
+:root {
+  /* Theme set: light (C37) */
+  --bg: #FAF9F7;
+  --surface-glass: rgba(255, 255, 255, 0.62);
+  --surface-solid: #FFFFFF;
+  --ink: #1A1815;
+  --muted: #6B675F;
+  --hairline: #E5E2DC;
+  --accent: #B45309;
+  --shadow-glass: 0 4px 24px rgba(0, 0, 0, 0.08);
+
+  /* Type (C40) */
+  --font-display: Charter, Georgia, serif;
+  --font-text: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --text-1: 13px;
+  --text-2: 16px;
+  --text-3: 20px;
+  --text-4: 25px;
+  --text-5: 31px;
+  --text-6: 39px;
+  --lh-body: 1.5;
+  --lh-head: 1.2;
+
+  /* Spacing (C41) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  /* Radii (C41) */
+  --r-s: 6px;
+  --r-m: 12px;
+
+  /* Motion and effects (C44, C46) */
+  --dur: 150ms;
+  --blur: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Theme set: dark (C37) */
+    --bg: #141310;
+    --surface-glass: rgba(32, 30, 26, 0.62);
+    --surface-solid: #201E1A;
+    --ink: #ECEAE4;
+    --muted: #98948A;
+    --hairline: #2E2B26;
+    --accent: #E8A33D;
+    --shadow-glass: 0 4px 24px rgba(0, 0, 0, 0.40);
+  }
+}

@@ -1,0 +1,9 @@
+[
+  {
+    "id": "alpha-launch",
+    "date": "2024-05-01",
+    "title": "Alpha One launches",
+    "body": "Alpha Labs releases Alpha One to the public.",
+    "modelIds": ["alpha-1"]
+  }
+]

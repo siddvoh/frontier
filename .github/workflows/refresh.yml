@@ -1,0 +1,34 @@
+name: Nightly refresh
+
+on:
+  schedule:
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run fetch
+      - run: npm run build
+      - run: npm run validate
+      - run: npm test
+      - name: Commit and push refreshed data
+        run: |
+          if git diff --quiet -- data/epoch_notable_ai_models.csv docs/data/models.json; then
+            echo "No data changes; skipping commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/epoch_notable_ai_models.csv docs/data/models.json
+          git commit -m "chore: nightly Epoch data refresh"
+          git push
