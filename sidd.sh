@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 mkdir -p .sidd
 MODE="${1:-build}"
 
