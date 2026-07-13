@@ -189,7 +189,7 @@ button {
   border-radius: var(--r-s);
   padding: var(--sp-2) var(--sp-4);
   cursor: pointer;
-  transition: opacity var(--dur) ease-out;
+  transition: color var(--dur) ease-out, border-color var(--dur) ease-out;
 }
 
 button:hover {
@@ -226,10 +226,6 @@ th {
 td {
   padding: var(--sp-2) var(--sp-3);
   border-bottom: 1px solid var(--hairline);
-}
-
-tbody tr {
-  transition: background var(--dur) ease-out;
 }
 
 tbody tr:hover {
@@ -290,6 +286,170 @@ summary {
   border-radius: var(--r-m);
   padding: var(--sp-5) 0;
   margin: 0 0 var(--sp-5);
+}
+
+/* Layout utilities consumed by the view layer (W5.S1) */
+
+.table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+  margin: 0 0 var(--sp-4);
+}
+
+.filter-bar {
+  display: grid;
+  gap: var(--sp-3);
+  margin: 0 0 var(--sp-4);
+}
+
+.filter-bar input,
+.filter-bar select {
+  margin: 0;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 2fr auto;
+  align-items: center;
+  gap: var(--sp-3);
+  margin: 0 0 var(--sp-2);
+}
+
+.form-grid {
+  display: grid;
+  gap: 0 var(--sp-4);
+}
+
+.field-check {
+  margin: 0 0 var(--sp-3);
+}
+
+.field-check input,
+.field-check label {
+  display: inline-block;
+  width: auto;
+  margin: 0;
+}
+
+.field-check input {
+  margin: 0 var(--sp-1) 0 0;
+}
+
+/* Compare tray docking: bottom sheet on small screens, right-docked
+   panel at the single 720px breakpoint (see media query below). */
+
+.tray-docked {
+  position: fixed;
+  top: auto;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-width: none;
+  border-radius: var(--r-m);
+}
+
+/* Clearance: while the tray is visible the page body keeps enough
+   bottom padding that the tray never covers bars or table rows. */
+
+body:has(.tray-docked:not([hidden])) #app {
+  padding-bottom: var(--sp-8);
+}
+
+/* Inside the already-docked #compare-tray glass host the details element
+   provides only the collapse toggle; docking stays on the host. */
+
+#compare-tray .tray-docked {
+  position: static;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  max-width: none;
+}
+
+/* Dim layer under #model-overlay (z-index 20). */
+
+.overlay-scrim {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 19;
+  background: var(--ink);
+  opacity: 0.4;
+}
+
+/* Timeline track: two label lanes with a hairline axis between them. */
+
+.timeline-track {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  row-gap: var(--sp-4);
+}
+
+.timeline-track::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--hairline);
+}
+
+/* Timeline dot anchoring and lanes (W5.S2 markup contract):
+   data-anchor="end" translates the label left of its dot so it never
+   extends past the track edge; data-lane="N" stacks colliding labels
+   one label height apart. */
+
+.timeline-dot {
+  top: 0;
+  font-size: var(--text-1);
+  line-height: var(--lh-body);
+  white-space: nowrap;
+  --anchor-shift: 0%;
+  --lane-shift: 0%;
+  transform: translate(var(--anchor-shift), var(--lane-shift));
+}
+
+.timeline-dot[data-anchor="end"] {
+  --anchor-shift: -100%;
+}
+
+.timeline-dot[data-lane="1"] {
+  --lane-shift: 100%;
+}
+
+.timeline-dot[data-lane="2"] {
+  --lane-shift: 200%;
+}
+
+.timeline-dot[data-lane="3"] {
+  --lane-shift: 300%;
+}
+
+.timeline-dot[data-lane="4"] {
+  --lane-shift: 400%;
+}
+
+.timeline-dot[data-lane="5"] {
+  --lane-shift: 500%;
+}
+
+.timeline-dot[data-lane="6"] {
+  --lane-shift: 600%;
+}
+
+.timeline-event[data-anchor="end"] {
+  transform: translate(-100%, 0);
 }
 
 /* Floating panels and overlay (glass hosts, C43) */
@@ -380,5 +540,28 @@ summary {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--sp-4);
+  }
+
+  .filter-bar {
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    align-items: end;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .form-grid .constraints,
+  .form-grid button {
+    grid-column: 1 / -1;
+  }
+
+  .tray-docked {
+    top: auto;
+    left: auto;
+    right: var(--sp-6);
+    bottom: var(--sp-6);
+    max-width: 420px;
   }
 }

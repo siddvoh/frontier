@@ -2,6 +2,103 @@
 
 Running notes between slice agents. Newest wave at top.
 
+## Wave 5 (visual defect remediation; suite 360/360, shots inspected)
+
+### Integration (by the wave orchestrator, inside W5.S1's styles.css)
+- Cross-slice CSS bridged after the parallel slices landed: timeline
+  `data-anchor`/`data-lane` styling (custom props --anchor-shift/--lane-shift
+  on .timeline-dot, translate() percentages, lanes 1-6 enumerated),
+  `.form-grid .constraints` + `.form-grid button` spanning `1 / -1` at
+  >=720px, and `.field-check` inline checkbox rules.
+- Docking lives on the #compare-tray host, not the details: a
+  `#compare-tray .tray-docked` rule resets position/border/padding/margin
+  so the nested details is only a toggle. Without it two fixed elements
+  render (an empty glass pill plus an escaped sheet). Any future tray
+  markup change must keep either the host id or that override in sync.
+- tests/w2s3.test.js "concrete inputs" now passes a fully runnable input
+  (both volumes non-null): the old partial input relied on the always-on
+  summary that W5.S6 removed by design. Assertion strength unchanged.
+- model.js fmtCount renders "1,800,000,000,000 (1800000000000)": the
+  parenthesized raw digits exist because w3s2 asserts String(value)
+  verbatim in the overlay text. Cosmetic candidate for a future slice
+  (would need w3s2 + w5s3 assertion updates together).
+
+### W5.S1 (stylesheet remediation)
+- Transitions exist only for color/border-color on a, input/select/textarea,
+  button; w5s1 enforces this for every transition declaration. No opacity/
+  background/all transitions ever again.
+- Layout classes: .table-scroll (overflow-x auto), .filter-bar (grid,
+  single row via grid-auto-flow: column at >=720px), .nowrap, .num
+  (tabular-nums), .bar-row (3-col grid minmax(0,1fr) 2fr auto),
+  .form-grid (1fr 1fr at >=720px), .tray-docked (bottom sheet, right-docked
+  >=720px, body:has() clearance keyed on :not([hidden])), .overlay-scrim
+  (fixed, var(--ink) + opacity .4, z-index 19 under #model-overlay's 20),
+  .timeline-track (2-row grid, ::before hairline axis).
+- w5s1's ruleBlock helper matches selector lists by exact comma-separated
+  entry: keep selector entries exactly "input", "button", ".bar-row" etc.
+  when splitting rules, or update the test.
+- Focus ring stays the global :focus-visible accent outline. box-shadow
+  count (1) and backdrop-filter count (2) are pinned.
+
+### W5.S2 (timeline lanes/anchors)
+- New export assignLanes(percents) -> lanes, pure; smallest free lane among
+  dots within COLLISION_PERCENT = 2 (inclusive), walked in ascending x
+  (ties by input index). Lane numbering follows ascending x, not input
+  order; w5s2 pins [98, 97, 98] -> [1, 0, 2].
+- Dots and markers carry data-anchor="start|end" ("end" iff percent > 50;
+  exactly 50 is "start"); dots carry data-lane. Old alternating inline top
+  vars removed: vertical placement is CSS's job now.
+- leftPercent/TIMELINE_START/render signatures unchanged; jsdom gotcha:
+  enumerate inline styles via style.length + style.item(i).
+
+### W5.S3 (overlay over live catalog)
+- main.js model route: one replaceChildren(catalog, scrim, overlay); scrim
+  div carries data-action="overlay-close" so the single #app delegate
+  closes on scrim click too. injectOverlayClose + markCatalogSelection both
+  run at the model route. Row-click compare toggling stays gated on
+  view === "catalog", so rows under the scrim are inert by design.
+- model.js fmtCount (local, util.js untouched): exponent strings (>=1e21)
+  verbatim; otherwise toLocaleString("en-US") + " (raw)". Null falls
+  through to fmtText -> MISSING. Never mutates the stored value.
+- docs/js still has exactly one fetch( (main.js); keep comments free of
+  the token.
+
+### W5.S4 (catalog containment)
+- Table sits inside div.table-scroll (direct child of section); anything
+  querying section > table must use .table-scroll > table.
+- Controls div is "catalog-controls filter-bar" (grid-2 dropped); order
+  pinned by w5s4: name, org, open, sort key, direction. Listeners still
+  bubble to .catalog-controls.
+- COLUMNS tuples are [header, formatter, tdClass]: Released -> nowrap, the
+  five numeric columns -> num, applied on every td including MISSING cells.
+  Header th elements intentionally carry no such classes.
+
+### W5.S5 (compare rows/tray)
+- Bar rows: exactly 3 sibling cells via one row.append(label, barCell,
+  valueEl): span.bar-label, div.bar-cell, span.bar-value. bar-cell is
+  ALWAYS present; null metrics leave it empty (no .bar/.bar-track) and add
+  .bar-row-missing. w5s5 pins children length 3, so nest any extras inside
+  a cell.
+- Tray content is one details.tray-docked (no .glass) inside div#compare-tray
+  .glass; summary text is exactly "N of 3 selected" (w5s5 asserts equality).
+  Old h3 + p.muted capacity line are gone. Collapsed by default (no open
+  attribute); jsdom's summary.click() toggles details.open in tests.
+
+### W5.S6 (scenario form/empty state)
+- #scenario-form carries .form-grid; direct children in order: four
+  div.field.field-pair (budget, task, in, out), fieldset.constraints
+  (legend "Constraints", checkbox first via .field-check with input BEFORE
+  label), submit button. w5s6 pins the order.
+- Summary (p.scenario-summary.muted) renders only when isRunnable(input)
+  (budget, task, both volumes non-null), exactly when the engine runs, so
+  it never shows MISSING. The MISSING marker w3s4 expects for all-null
+  input lives in the muted prompt: "Enter a budget, task, and both token
+  volumes to rank models. Until then every scenario value is " + MISSING +
+  "." Keep the phrase "Enter a budget" and the interpolation; w5s6 also
+  asserts "Budget " + MISSING never appears.
+- Helpers: labeledField (.field), pairedField (+field-pair), checkboxField
+  (control-first, .field-check).
+
 ## Wave 4
 
 ### W4.S1 (final wiring, glass scoping, whole-suite audit)

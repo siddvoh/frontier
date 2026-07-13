@@ -1,14 +1,24 @@
-// Timeline strip (C34). Pure render: (props) -> DOM element, no fetch.
+// Timeline strip (C34). Pure render: (props) -> DOM element, no network.
 // x is mapped linearly from TIMELINE_START to the artifact's generatedAt.
 // Model dots are anchors labeled by name at releaseDate (null dates are
 // omitted, C21); event markers use the accent token and reveal their title
 // and body on click. Pure HTML/CSS positioning: no canvas, no SVG.
 // Inline styles use only percentages, "0", and var() references (C36).
+//
+// W5.S2 layout contract (consumed by the W5.S1 CSS slice):
+// - data-anchor="start|end" on dots and markers: "end" means the element is
+//   in the right half of the track, so its label translates left of the dot
+//   to stay inside the track; "start" labels extend rightward as before.
+// - data-lane="0|1|2..." on dots: deterministic stacked lanes so labels of
+//   dots within COLLISION_PERCENT of each other never overlap.
 
 import { fmtDate } from "../util.js";
 
 /** Left edge of the timeline axis (GPT-4 era start). */
 export const TIMELINE_START = "2023-03-01";
+
+/** Dots closer than this (in percent of the track) share a collision group. */
+const COLLISION_PERCENT = 2;
 
 /**
  * Linear x position of an ISO date on the strip, as a percentage of the
@@ -23,19 +33,53 @@ export function leftPercent(dateIso, generatedAt) {
   return ((Date.parse(dateIso) - start) / (end - start)) * 100;
 }
 
-function placeAt(el, dateIso, generatedAt) {
-  el.style.position = "absolute";
-  el.style.left = leftPercent(dateIso, generatedAt) + "%";
+/** Anchor side for a track position: right-half labels flip to "end". */
+function anchorFor(percent) {
+  return percent > 50 ? "end" : "start";
 }
 
-function modelDot(model, index, generatedAt) {
+/**
+ * Deterministic lane per dot: walk dots in ascending x (ties broken by
+ * input order) and give each the smallest lane not taken by any earlier
+ * dot within COLLISION_PERCENT of it.
+ * @param {number[]} percents left offsets in input order
+ * @returns {number[]} lane numbers in input order
+ */
+export function assignLanes(percents) {
+  const order = percents
+    .map((percent, index) => ({ percent, index }))
+    .sort((a, b) => a.percent - b.percent || a.index - b.index);
+  const lanes = new Array(percents.length);
+  const placed = [];
+  for (const entry of order) {
+    const taken = new Set(
+      placed
+        .filter(
+          (p) => Math.abs(p.percent - entry.percent) <= COLLISION_PERCENT
+        )
+        .map((p) => p.lane)
+    );
+    let lane = 0;
+    while (taken.has(lane)) lane += 1;
+    lanes[entry.index] = lane;
+    placed.push({ percent: entry.percent, lane });
+  }
+  return lanes;
+}
+
+function placeAt(el, percent) {
+  el.style.position = "absolute";
+  el.style.left = percent + "%";
+  el.setAttribute("data-anchor", anchorFor(percent));
+}
+
+function modelDot(model, percent, lane) {
   const dot = document.createElement("a");
   dot.className = "timeline-dot";
   dot.href = "#/model/" + encodeURIComponent(model.id);
   dot.textContent = model.name;
-  placeAt(dot, model.releaseDate, generatedAt);
-  // Alternate rows so neighboring labels do not sit on one line.
-  dot.style.top = index % 2 === 0 ? "var(--sp-2)" : "var(--sp-6)";
+  placeAt(dot, percent);
+  dot.setAttribute("data-lane", String(lane));
   return dot;
 }
 
@@ -44,7 +88,7 @@ function eventMarker(event, generatedAt) {
   marker.type = "button";
   marker.className = "timeline-event";
   marker.setAttribute("aria-label", event.title);
-  placeAt(marker, event.date, generatedAt);
+  placeAt(marker, leftPercent(event.date, generatedAt));
   marker.style.bottom = "0";
   marker.style.width = "var(--sp-3)";
   marker.style.height = "var(--sp-3)";
@@ -85,8 +129,10 @@ export function render({ models, events, generatedAt }) {
   track.style.height = "var(--sp-8)";
 
   const dated = models.filter((m) => m.releaseDate !== null);
+  const percents = dated.map((m) => leftPercent(m.releaseDate, generatedAt));
+  const lanes = assignLanes(percents);
   dated.forEach((model, index) => {
-    track.append(modelDot(model, index, generatedAt));
+    track.append(modelDot(model, percents[index], lanes[index]));
   });
 
   const details = [];

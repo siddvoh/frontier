@@ -5,7 +5,7 @@
 // router's scenario query keys (budget, task, in, out, open, minCtx,
 // after, before) so the form state can round-trip through the hash.
 
-import { fmtText, fmtUsd, fmtInt, fmtScore } from "../util.js";
+import { MISSING, fmtText, fmtUsd, fmtInt, fmtScore } from "../util.js";
 import { evaluateScenario, TASKS } from "../engine.js";
 
 const RANKING_LABELS = {
@@ -32,6 +32,21 @@ function labeledField(id, name, labelText, control) {
   return el("div", { className: "field" }, [label, control]);
 }
 
+// A .field that pairs 2-up in the .form-grid columns at >=720px.
+function pairedField(id, name, labelText, control) {
+  const field = labeledField(id, name, labelText, control);
+  field.classList.add("field-pair");
+  return field;
+}
+
+// Checkbox variant: control first so the box sits inline with its label.
+function checkboxField(id, name, labelText, control) {
+  control.id = id;
+  control.name = name;
+  const label = el("label", { htmlFor: id, textContent: labelText });
+  return el("div", { className: "field field-check" }, [control, label]);
+}
+
 function numberInput(value) {
   const input = el("input", { type: "number", min: "0" });
   input.step = "any";
@@ -54,32 +69,18 @@ function taskSelect(task) {
   return select;
 }
 
-// Every C22 input, each control labeled (C33, C35).
+// Every C22 input, each control labeled (C33, C35). W5.S6 layout: the
+// form is a .form-grid (two 1fr columns at >=720px, per W5.S1 CSS), so the
+// four .field-pair cells pair up row by row: budget/task then in/out. The
+// four constraints live in a labeled fieldset spanning the grid, with the
+// open-weights checkbox inline before its label.
 function renderForm(input) {
   const c = input.constraints;
   const openBox = el("input", { type: "checkbox" });
   openBox.checked = c.openWeightsOnly === true;
-  return el("form", { id: "scenario-form" }, [
-    labeledField(
-      "scenario-budget",
-      "budget",
-      "Budget (USD/month)",
-      numberInput(input.budgetUsdPerMonth)
-    ),
-    labeledField("scenario-task", "task", "Task", taskSelect(input.task)),
-    labeledField(
-      "scenario-in",
-      "in",
-      "Input volume (Mtok/month)",
-      numberInput(input.inputMTokPerMonth)
-    ),
-    labeledField(
-      "scenario-out",
-      "out",
-      "Output volume (Mtok/month)",
-      numberInput(input.outputMTokPerMonth)
-    ),
-    labeledField("scenario-open", "open", "Open weights only", openBox),
+  const constraints = el("fieldset", { className: "constraints" }, [
+    el("legend", { textContent: "Constraints" }),
+    checkboxField("scenario-open", "open", "Open weights only", openBox),
     labeledField(
       "scenario-min-ctx",
       "minCtx",
@@ -98,13 +99,37 @@ function renderForm(input) {
       "Released on or before",
       dateInput(c.releasedOnOrBefore)
     ),
+  ]);
+  return el("form", { id: "scenario-form", className: "form-grid" }, [
+    pairedField(
+      "scenario-budget",
+      "budget",
+      "Budget (USD/month)",
+      numberInput(input.budgetUsdPerMonth)
+    ),
+    pairedField("scenario-task", "task", "Task", taskSelect(input.task)),
+    pairedField(
+      "scenario-in",
+      "in",
+      "Input volume (Mtok/month)",
+      numberInput(input.inputMTokPerMonth)
+    ),
+    pairedField(
+      "scenario-out",
+      "out",
+      "Output volume (Mtok/month)",
+      numberInput(input.outputMTokPerMonth)
+    ),
+    constraints,
     el("button", { type: "submit", textContent: "Run scenario" }),
   ]);
 }
 
+// Rendered only for a runnable input (W5.S6), so every value below is
+// non-null and the line never shows a wall of MISSING markers.
 function renderSummary(input) {
   return el("p", {
-    className: "muted",
+    className: "scenario-summary muted",
     textContent:
       "Budget " +
       fmtUsd(input.budgetUsdPerMonth) +
@@ -188,7 +213,10 @@ function renderResults(input, models) {
       el("p", {
         className: "muted",
         textContent:
-          "Enter a budget, task, and both token volumes to rank models.",
+          "Enter a budget, task, and both token volumes to rank models." +
+          " Until then every scenario value is " +
+          MISSING +
+          ".",
       })
     );
     return results;
@@ -201,10 +229,10 @@ function renderResults(input, models) {
 
 export function render(state) {
   const input = state.route.input;
-  return el("section", { className: "view-scenario" }, [
-    el("h2", { textContent: "Scenario" }),
-    renderForm(input),
-    renderSummary(input),
-    renderResults(input, state.data.models),
-  ]);
+  const children = [el("h2", { textContent: "Scenario" }), renderForm(input)];
+  // Honest empty state (W5.S6): the summary line exists only once the
+  // input is complete enough for the engine to run.
+  if (isRunnable(input)) children.push(renderSummary(input));
+  children.push(renderResults(input, state.data.models));
+  return el("section", { className: "view-scenario" }, children);
 }

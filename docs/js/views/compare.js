@@ -71,37 +71,41 @@ function barWidthPercent(value, max) {
   return max > 0 ? (value / max) * 100 : 0;
 }
 
+// The tray docks as a collapsed one-line summary so it never covers the
+// bar rows (W5.S5); details/summary gives a standards-native toggle with no
+// event wiring, keeping render pure. The .glass identity stays on
+// #compare-tray itself (C43); .tray-docked CSS ships in another slice.
 function renderTray(models) {
   const tray = document.createElement("div");
   tray.id = "compare-tray";
   tray.className = "glass";
 
-  const heading = document.createElement("h3");
-  heading.textContent = "Compare tray";
-  tray.append(heading);
+  const dock = document.createElement("details");
+  dock.className = "tray-docked";
 
-  const capacity = document.createElement("p");
-  capacity.className = "muted";
-  capacity.textContent = models.length + " of " + MAX_COMPARE + " selected";
-  tray.append(capacity);
+  const summary = document.createElement("summary");
+  summary.textContent = models.length + " of " + MAX_COMPARE + " selected";
+  dock.append(summary);
 
-  if (models.length === 0) return tray;
-
-  const list = document.createElement("ul");
-  for (const model of models) {
-    const item = document.createElement("li");
-    const name = document.createElement("span");
-    name.textContent = model.name + " (" + fmtText(model.organization) + ")";
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.className = "ghost";
-    remove.dataset.action = "compare-remove";
-    remove.dataset.modelId = model.id;
-    remove.textContent = "Remove";
-    item.append(name, " ", remove);
-    list.append(item);
+  if (models.length > 0) {
+    const list = document.createElement("ul");
+    for (const model of models) {
+      const item = document.createElement("li");
+      const name = document.createElement("span");
+      name.textContent = model.name + " (" + fmtText(model.organization) + ")";
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "ghost";
+      remove.dataset.action = "compare-remove";
+      remove.dataset.modelId = model.id;
+      remove.textContent = "Remove";
+      item.append(name, " ", remove);
+      list.append(item);
+    }
+    dock.append(list);
   }
-  tray.append(list);
+
+  tray.append(dock);
   return tray;
 }
 
@@ -124,11 +128,16 @@ function renderBarGroup(metric, models) {
     row.className = "bar-row";
     row.dataset.modelId = model.id;
 
+    // Three sibling cells (W5.S5): name, bar, value. The bar cell is always
+    // present so rows align as columns; for a null value it stays empty (no
+    // .bar/.bar-track) and the value cell shows MISSING via the formatter,
+    // never a string concatenated onto the name.
     const label = document.createElement("span");
     label.className = "bar-label";
     label.textContent = model.name;
-    row.append(label);
 
+    const barCell = document.createElement("div");
+    barCell.className = "bar-cell";
     if (value !== null) {
       const track = document.createElement("div");
       track.className = "bar-track";
@@ -136,7 +145,7 @@ function renderBarGroup(metric, models) {
       bar.className = "bar";
       bar.style.width = barWidthPercent(value, max) + "%";
       track.append(bar);
-      row.append(track);
+      barCell.append(track);
     } else {
       row.classList.add("bar-row-missing");
     }
@@ -144,7 +153,8 @@ function renderBarGroup(metric, models) {
     const valueEl = document.createElement("span");
     valueEl.className = "bar-value";
     valueEl.textContent = metric.format(value);
-    row.append(valueEl);
+
+    row.append(label, barCell, valueEl);
 
     group.append(row);
   });

@@ -6,8 +6,10 @@
 //   toggleCompareId (3-model cap enforced there, C32);
 // - compare-tray remove buttons (data-action="compare-remove") drop a model
 //   and re-render through the hash so compare URLs stay shareable (C28);
-// - the model overlay opens via #/model/:id links and closes via an injected
-//   Close button (data-action="overlay-close") or the Escape key;
+// - the model overlay opens via #/model/:id links over the live catalog
+//   (W5.S3): the catalog renders beneath, an .overlay-scrim div sits between
+//   them, and the overlay closes via an injected Close button
+//   (data-action="overlay-close"), a click on the scrim, or the Escape key;
 // - scenario form submission reads the W3.S4 form (empty controls map to
 //   null, never a default, C19) and navigates via the router's toHash.
 
@@ -89,6 +91,16 @@ function injectOverlayClose() {
   overlay.prepend(close);
 }
 
+// The dim layer between the catalog and the overlay (W5.S3). It carries the
+// same data-action as the Close button so the one #app click delegate also
+// closes the overlay on a scrim click.
+function overlayScrim() {
+  const scrim = document.createElement("div");
+  scrim.className = "overlay-scrim";
+  scrim.dataset.action = "overlay-close";
+  return scrim;
+}
+
 function renderRoute() {
   const app = document.querySelector("#app");
   if (!app || data === null) return;
@@ -97,9 +109,20 @@ function renderRoute() {
     // The hash is the source of truth for the tray (C28, C32).
     compareIds = route.ids.slice(0, MAX_COMPARE);
   }
-  app.replaceChildren(VIEWS[route.view]({ route, data }));
-  if (route.view === "model") injectOverlayClose();
-  if (route.view === "catalog") markCatalogSelection();
+  if (route.view === "model") {
+    // The overlay floats over the live catalog (W5.S3): catalog beneath,
+    // scrim between, overlay on top, in that DOM order.
+    app.replaceChildren(
+      VIEWS.catalog({ route: { view: "catalog" }, data }),
+      overlayScrim(),
+      VIEWS.model({ route, data })
+    );
+    injectOverlayClose();
+    markCatalogSelection();
+  } else {
+    app.replaceChildren(VIEWS[route.view]({ route, data }));
+    if (route.view === "catalog") markCatalogSelection();
+  }
   updateCompareLink();
 }
 

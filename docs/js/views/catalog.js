@@ -34,16 +34,18 @@ const SORT_LABELS = {
   swebenchVerified: "SWE-bench Verified",
 };
 
+// Each column: [header, cell formatter, td class]. "nowrap" keeps dates on
+// one line; "num" is the tabular-nums class shipped by the CSS slice.
 const COLUMNS = [
-  ["Name", (m) => fmtText(m.name)],
-  ["Organization", (m) => fmtText(m.organization)],
-  ["Released", (m) => fmtDate(m.releaseDate)],
-  ["Input $/MTok", (m) => fmtUsd(m.pricing.inputPerMTok)],
-  ["Output $/MTok", (m) => fmtUsd(m.pricing.outputPerMTok)],
-  ["Context window", (m) => fmtInt(m.contextWindow)],
-  ["GPQA Diamond", (m) => fmtScore(m.benchmarks.gpqaDiamond)],
-  ["SWE-bench Verified", (m) => fmtScore(m.benchmarks.swebenchVerified)],
-  ["Weights", (m) => fmtWeights(m.openWeights)],
+  ["Name", (m) => fmtText(m.name), ""],
+  ["Organization", (m) => fmtText(m.organization), ""],
+  ["Released", (m) => fmtDate(m.releaseDate), "nowrap"],
+  ["Input $/MTok", (m) => fmtUsd(m.pricing.inputPerMTok), "num"],
+  ["Output $/MTok", (m) => fmtUsd(m.pricing.outputPerMTok), "num"],
+  ["Context window", (m) => fmtInt(m.contextWindow), "num"],
+  ["GPQA Diamond", (m) => fmtScore(m.benchmarks.gpqaDiamond), "num"],
+  ["SWE-bench Verified", (m) => fmtScore(m.benchmarks.swebenchVerified), "num"],
+  ["Weights", (m) => fmtWeights(m.openWeights), ""],
 ];
 
 /**
@@ -135,8 +137,9 @@ function sortSelect(id, entries, selected) {
 function rowFor(model) {
   const row = document.createElement("tr");
   row.dataset.modelId = model.id;
-  COLUMNS.forEach(([, cell], index) => {
+  COLUMNS.forEach(([, cell, cellClass], index) => {
     const td = document.createElement("td");
+    if (cellClass !== "") td.className = cellClass;
     if (index === 0) {
       const link = document.createElement("a");
       link.href = "#/model/" + encodeURIComponent(model.id);
@@ -193,12 +196,14 @@ export function render(state) {
     "desc"
   );
 
+  // Deliberate control order (W5.S4): search, organization, open-weights,
+  // sort key, direction. catalog-controls stays for the update listeners.
   const controls = document.createElement("div");
-  controls.className = "catalog-controls grid-2";
+  controls.className = "catalog-controls filter-bar";
   controls.append(
+    labeled("Filter by name", name),
     labeled("Organization", org),
     labeled("Open weights only", open),
-    labeled("Filter by name", name),
     labeled("Sort by", sortKey),
     labeled("Direction", sortDir)
   );
@@ -216,7 +221,13 @@ export function render(state) {
   thead.append(headRow);
   const tbody = document.createElement("tbody");
   table.append(thead, tbody);
-  section.append(table);
+
+  // Containment (W5.S4): the 731px table scrolls inside this wrapper so the
+  // page itself never scrolls horizontally at narrow widths.
+  const tableScroll = document.createElement("div");
+  tableScroll.className = "table-scroll";
+  tableScroll.append(table);
+  section.append(tableScroll);
 
   function update() {
     const filtered = filterModels(models, {

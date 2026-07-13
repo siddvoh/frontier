@@ -356,6 +356,8 @@ describe("view stubs render under jsdom without fetch (C29, C13)", () => {
           ...emptyScenarioInput,
           budgetUsdPerMonth: 100,
           task: "coding",
+          inputMTokPerMonth: 10,
+          outputMTokPerMonth: 5,
           constraints: { ...emptyScenarioInput.constraints },
         },
       },

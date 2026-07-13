@@ -70,17 +70,31 @@ const FIELD_ROWS = [
   },
 ];
 
+// Readable rendering for large stored counts (W5.S3). Display formatting
+// only: the stored value is never altered, rounded, or defaulted. Values
+// JavaScript already prints in exponent notation (>= 1e21) keep that exact
+// exponent form; decimal-notation values render with en-US locale grouping
+// followed by the exact stored digits in parentheses, so the verbatim value
+// stays visible next to the readable one. Null falls through to fmtText,
+// which renders MISSING (C19, C20).
+function fmtCount(value) {
+  if (typeof value !== "number") return fmtText(value);
+  const raw = String(value);
+  if (raw.includes("e")) return raw;
+  return value.toLocaleString("en-US") + " (" + raw + ")";
+}
+
 // Epoch enrichment values (C31), rendered as their own group.
 const EPOCH_ROWS = [
   {
     label: "Parameters",
     sourceKey: "epoch.parameters",
-    value: (m) => fmtText(m.epoch.parameters),
+    value: (m) => fmtCount(m.epoch.parameters),
   },
   {
     label: "Training compute (FLOP)",
     sourceKey: "epoch.trainingComputeFlop",
-    value: (m) => fmtText(m.epoch.trainingComputeFlop),
+    value: (m) => fmtCount(m.epoch.trainingComputeFlop),
   },
   {
     label: "Organization",
