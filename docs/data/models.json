@@ -237,5 +237,25 @@
         "claude-fable-5"
       ]
     }
+  ],
+  "surprises": [
+    {
+      "id": "gpt4-pricier-than-fable5",
+      "modelIds": [
+        "gpt-4",
+        "claude-fable-5"
+      ],
+      "field": "pricing.inputPerMTok",
+      "note": "The March 2023 GPT-4 still costs 3x more per input token than the June 2026 flagship Claude Fable 5."
+    },
+    {
+      "id": "gpt4-output-pricier-than-fable5",
+      "modelIds": [
+        "gpt-4",
+        "claude-fable-5"
+      ],
+      "field": "pricing.outputPerMTok",
+      "note": "GPT-4's output tokens cost more than Fable 5's despite three years and several generations between them."
+    }
   ]
 }

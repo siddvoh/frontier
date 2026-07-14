@@ -1,17 +1,26 @@
 // scripts/validate.js
-// Schema validator for Frontier data files (SPEC C10, C11, C16, C17,
-// schemas 12.1-12.4). Hand-rolled, zero runtime dependencies (C5).
+// Schema validator for Frontier data files (SPEC C10, C11, C16, C17, C55,
+// C56, schemas 12.1-12.5). Hand-rolled, zero runtime dependencies (C5).
 //
 // Default targets (relative to the repo root, i.e. the parent of scripts/):
 //   data/curated.json      -> schema 12.2 (curated input records)
 //   data/events.json       -> schema 12.3 (events)
-//   docs/data/models.json  -> schemas 12.1 + 12.4 (artifact); the artifact
-//                             check is skipped gracefully only when the file
-//                             does not exist yet.
+//   data/surprises.json    -> schema 12.5 (owner-authored surprises, C55);
+//                             required on the default path, so a missing or
+//                             invalid file fails loudly (C55)
+//   docs/data/models.json  -> schemas 12.1 + amended 12.4 (artifact); the
+//                             artifact check is skipped gracefully only when
+//                             the file does not exist yet. When surprises are
+//                             checked, the artifact must carry the required
+//                             (possibly empty) `surprises` array and each
+//                             surprise's two models must be non-null with
+//                             differing values on the surprise field (C56).
 //
 // Testability override: a single optional argument (or the environment
 // variable FRONTIER_DATA_DIR) names a fixture directory containing
-// curated.json, events.json, and optionally models.json:
+// curated.json, events.json, and optionally surprises.json and models.json
+// (fixture dirs without surprises.json skip that check gracefully, mirroring
+// the W1.S3 artifact convention):
 //   node scripts/validate.js tests/fixtures/w1s3/valid
 //   FRONTIER_DATA_DIR=tests/fixtures/w1s3/valid node scripts/validate.js
 //
@@ -85,6 +94,44 @@ function checkNonEmptyString(value, path, errors) {
   if (typeof value !== "string" || value.length < 1) {
     errors.push(`${path}: must be a non-empty string`);
   }
+}
+
+// Shared shape check for modelIds lists (events 12.3, surprises 12.5):
+// array of unique strings, optionally of an exact length.
+function checkModelIdList(list, path, errors, { exactLength } = {}) {
+  if (!Array.isArray(list)) {
+    errors.push(`${path}: must be an array of strings`);
+    return;
+  }
+  if (exactLength !== undefined && list.length !== exactLength) {
+    errors.push(
+      `${path}: must contain exactly ${exactLength} model ids (got ${list.length})`
+    );
+  }
+  const seen = new Set();
+  list.forEach((entry, i) => {
+    if (typeof entry !== "string") {
+      errors.push(`${path}[${i}]: must be a string`);
+    } else if (seen.has(entry)) {
+      errors.push(
+        `${path}[${i}]: duplicate entry ${JSON.stringify(entry)} (uniqueItems)`
+      );
+    } else {
+      seen.add(entry);
+    }
+  });
+}
+
+// Shared referential check: every string entry must be a known model id.
+function checkModelIdsExist(list, knownModelIds, path, errors) {
+  if (!Array.isArray(list)) return;
+  list.forEach((modelId, i) => {
+    if (typeof modelId === "string" && !knownModelIds.has(modelId)) {
+      errors.push(
+        `${path}[${i}]: ${JSON.stringify(modelId)} is not an existing model id`
+      );
+    }
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -265,23 +312,130 @@ function validateEvent(event, path, errors) {
   if ("title" in event) checkNonEmptyString(event.title, `${path}.title`, errors);
   if ("body" in event) checkNonEmptyString(event.body, `${path}.body`, errors);
   if ("modelIds" in event) {
-    if (!Array.isArray(event.modelIds)) {
-      errors.push(`${path}.modelIds: must be an array of strings`);
-    } else {
-      const seen = new Set();
-      event.modelIds.forEach((entry, i) => {
-        if (typeof entry !== "string") {
-          errors.push(`${path}.modelIds[${i}]: must be a string`);
-        } else if (seen.has(entry)) {
-          errors.push(
-            `${path}.modelIds[${i}]: duplicate entry ${JSON.stringify(entry)} (uniqueItems)`
-          );
-        } else {
-          seen.add(entry);
-        }
-      });
+    checkModelIdList(event.modelIds, `${path}.modelIds`, errors);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Schema 12.5: surprise (element of data/surprises.json and of the
+// artifact's top-level `surprises` array). C55/C56.
+// ---------------------------------------------------------------------------
+
+export const SURPRISE_FIELDS = [
+  "pricing.inputPerMTok",
+  "pricing.outputPerMTok",
+  "contextWindow",
+  "benchmarks.gpqaDiamond",
+  "benchmarks.swebenchVerified",
+  "releaseDate",
+];
+
+const SURPRISE_ID_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+function getFieldValue(record, dotPath) {
+  return dotPath
+    .split(".")
+    .reduce((obj, key) => (isPlainObject(obj) ? obj[key] : undefined), record);
+}
+
+function validateSurprise(surprise, path, errors) {
+  if (!isPlainObject(surprise)) {
+    errors.push(`${path}: must be an object`);
+    return;
+  }
+  const keys = ["id", "modelIds", "field", "note"];
+  checkKeys(surprise, keys, keys, path, errors);
+
+  if ("id" in surprise) {
+    if (
+      typeof surprise.id !== "string" ||
+      !SURPRISE_ID_PATTERN.test(surprise.id)
+    ) {
+      errors.push(
+        `${path}.id: must be a string matching ^[a-z0-9]+(-[a-z0-9]+)*$ (got ${JSON.stringify(surprise.id)})`
+      );
     }
   }
+  if ("modelIds" in surprise) {
+    checkModelIdList(surprise.modelIds, `${path}.modelIds`, errors, {
+      exactLength: 2,
+    });
+  }
+  if ("field" in surprise && !SURPRISE_FIELDS.includes(surprise.field)) {
+    errors.push(
+      `${path}.field: must be one of ${SURPRISE_FIELDS.join(", ")} (got ${JSON.stringify(surprise.field)})`
+    );
+  }
+  if ("note" in surprise) checkNonEmptyString(surprise.note, `${path}.note`, errors);
+}
+
+export function validateSurprises(surprises, knownModelIds, path = "surprises") {
+  const errors = [];
+  if (!Array.isArray(surprises)) {
+    errors.push(`${path}: must be an array of surprise records`);
+    return errors;
+  }
+  surprises.forEach((surprise, i) => {
+    validateSurprise(surprise, `${path}[${i}]`, errors);
+    if (isPlainObject(surprise)) {
+      checkModelIdsExist(
+        surprise.modelIds,
+        knownModelIds,
+        `${path}[${i}].modelIds`,
+        errors
+      );
+    }
+  });
+  return errors;
+}
+
+// C56 artifact cross-check: for every surprise, both referenced models must
+// be non-null on the surprise field, and the two values must differ. Runs
+// only against a built artifact's models; existence violations are reported
+// by validateSurprises, so unknown ids are skipped here.
+export function checkSurprisesAgainstModels(surprises, models, path = "surprises") {
+  const errors = [];
+  if (!Array.isArray(surprises) || !Array.isArray(models)) return errors;
+  const byId = new Map();
+  for (const model of models) {
+    if (isPlainObject(model) && typeof model.id === "string") {
+      byId.set(model.id, model);
+    }
+  }
+  surprises.forEach((surprise, i) => {
+    if (
+      !isPlainObject(surprise) ||
+      !Array.isArray(surprise.modelIds) ||
+      surprise.modelIds.length !== 2 ||
+      !SURPRISE_FIELDS.includes(surprise.field)
+    ) {
+      return;
+    }
+    const values = surprise.modelIds.map((modelId) => {
+      const model = byId.get(modelId);
+      if (model === undefined) return undefined;
+      return getFieldValue(model, surprise.field);
+    });
+    let allPresent = true;
+    surprise.modelIds.forEach((modelId, j) => {
+      if (!byId.has(modelId)) {
+        allPresent = false;
+        return;
+      }
+      if (values[j] === null || values[j] === undefined) {
+        allPresent = false;
+        errors.push(
+          `${path}[${i}]: model ${JSON.stringify(modelId)} is null on field ${JSON.stringify(surprise.field)} in the artifact`
+        );
+      }
+    });
+    if (allPresent && values[0] === values[1]) {
+      errors.push(
+        `${path}[${i}]: both models have the same value ${JSON.stringify(values[0])} on field ${JSON.stringify(surprise.field)}; surprise values must differ`
+      );
+    }
+  });
+  return errors;
 }
 
 // ---------------------------------------------------------------------------
@@ -309,27 +463,32 @@ export function validateEvents(events, knownModelIds, path = "events") {
   }
   events.forEach((event, i) => {
     validateEvent(event, `${path}[${i}]`, errors);
-    if (isPlainObject(event) && Array.isArray(event.modelIds)) {
-      event.modelIds.forEach((modelId, j) => {
-        if (typeof modelId === "string" && !knownModelIds.has(modelId)) {
-          errors.push(
-            `${path}[${i}].modelIds[${j}]: ${JSON.stringify(modelId)} is not an existing model id`
-          );
-        }
-      });
+    if (isPlainObject(event)) {
+      checkModelIdsExist(
+        event.modelIds,
+        knownModelIds,
+        `${path}[${i}].modelIds`,
+        errors
+      );
     }
   });
   return errors;
 }
 
-export function validateArtifact(artifact) {
+// Amended 12.4: the artifact carries a top-level `surprises` array (possibly
+// empty). `requireSurprises` makes the key required; it defaults to optional
+// so pre-surprise fixture artifacts keep validating (W1.S3/W2.S1 suites).
+// When the key is present its contents are always fully checked.
+export function validateArtifact(artifact, { requireSurprises = false } = {}) {
   const errors = [];
   if (!isPlainObject(artifact)) {
     errors.push("artifact: must be an object");
     return errors;
   }
-  const keys = ["generatedAt", "attribution", "models", "events"];
-  checkKeys(artifact, keys, keys, "artifact", errors);
+  const required = ["generatedAt", "attribution", "models", "events"];
+  if (requireSurprises) required.push("surprises");
+  const allowed = ["generatedAt", "attribution", "models", "events", "surprises"];
+  checkKeys(artifact, required, allowed, "artifact", errors);
 
   if ("generatedAt" in artifact) {
     if (
@@ -370,6 +529,24 @@ export function validateArtifact(artifact) {
     errors.push(
       ...validateEvents(artifact.events, artifactModelIds, "artifact.events")
     );
+  }
+  if ("surprises" in artifact) {
+    errors.push(
+      ...validateSurprises(
+        artifact.surprises,
+        artifactModelIds,
+        "artifact.surprises"
+      )
+    );
+    if (Array.isArray(artifact.models)) {
+      errors.push(
+        ...checkSurprisesAgainstModels(
+          artifact.surprises,
+          artifact.models,
+          "artifact.surprises"
+        )
+      );
+    }
   }
   return errors;
 }
@@ -440,14 +617,18 @@ function resolvePaths() {
     return {
       curated: join(dir, "curated.json"),
       events: join(dir, "events.json"),
+      surprises: join(dir, "surprises.json"),
       artifact: join(dir, "models.json"),
+      isOverride: true,
     };
   }
   const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
   return {
     curated: join(repoRoot, "data", "curated.json"),
     events: join(repoRoot, "data", "events.json"),
+    surprises: join(repoRoot, "data", "surprises.json"),
     artifact: join(repoRoot, "docs", "data", "models.json"),
+    isOverride: false,
   };
 }
 
@@ -466,22 +647,49 @@ export function runValidation(paths) {
     errors.push(...validateEvents(events, curatedIds));
   }
 
+  // Surprises (schema 12.5, C55/C56). Required on the default path so a
+  // missing data/surprises.json fails loudly; override (fixture) dirs
+  // without the file skip gracefully, mirroring the artifact convention.
+  let surprisesChecked = false;
+  let surprises;
+  if (existsSync(paths.surprises) || !paths.isOverride) {
+    surprisesChecked = true;
+    surprises = loadJson(paths.surprises, "surprises", errors);
+    if (surprises !== undefined) {
+      errors.push(...validateSurprises(surprises, curatedIds));
+    }
+  }
+
   let artifactChecked = false;
   if (existsSync(paths.artifact)) {
     artifactChecked = true;
     const artifact = loadJson(paths.artifact, "artifact", errors);
     if (artifact !== undefined) {
-      errors.push(...validateArtifact(artifact));
+      errors.push(
+        ...validateArtifact(artifact, { requireSurprises: surprisesChecked })
+      );
+      // C56: the source surprises must reference models that are non-null
+      // with differing values on the surprise field in the built artifact.
+      if (surprises !== undefined && isPlainObject(artifact)) {
+        errors.push(
+          ...checkSurprisesAgainstModels(surprises, artifact.models)
+        );
+      }
     }
   }
 
-  return { errors, artifactChecked };
+  return { errors, artifactChecked, surprisesChecked };
 }
 
 function main() {
   const paths = resolvePaths();
-  const { errors, artifactChecked } = runValidation(paths);
+  const { errors, artifactChecked, surprisesChecked } = runValidation(paths);
 
+  if (!surprisesChecked) {
+    console.log(
+      `validate: ${paths.surprises} does not exist; skipping surprises check`
+    );
+  }
   if (!artifactChecked) {
     console.log(
       `validate: ${paths.artifact} does not exist yet; skipping artifact check`
@@ -495,7 +703,7 @@ function main() {
     process.exit(1);
   }
   console.log(
-    `validate: OK (curated, events${artifactChecked ? ", artifact" : ""})`
+    `validate: OK (curated, events${surprisesChecked ? ", surprises" : ""}${artifactChecked ? ", artifact" : ""})`
   );
 }
 

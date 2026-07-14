@@ -1,0 +1,7 @@
+{
+  "modelName": "Model",
+  "releaseDate": "Publication date",
+  "parameters": "Parameters",
+  "trainingComputeFlop": "Training compute (FLOP)",
+  "organization": "Organization"
+}

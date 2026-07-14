@@ -12,6 +12,10 @@
 //   (data-action="overlay-close"), a click on the scrim, or the Escape key;
 // - scenario form submission reads the W3.S4 form (empty controls map to
 //   null, never a default, C19) and navigates via the router's toHash.
+// W7.S1 adds the three game routes (picker, daily, endless) to the same
+// VIEWS dispatch plus a Game link in #site-header; game views receive
+// question data only through the artifact in state, so this stays the
+// single fetch site (C70, C29, C13).
 
 import { parseHash, toHash } from "./router.js";
 import { render as renderCatalog } from "./views/catalog.js";
@@ -22,12 +26,18 @@ import {
   MAX_COMPARE,
 } from "./views/compare.js";
 import { render as renderScenario } from "./views/scenario.js";
+import { render as renderPicker } from "./game/views/picker.js";
+import { render as renderDaily } from "./game/views/daily.js";
+import { render as renderEndless } from "./game/views/endless.js";
 
 const VIEWS = {
   catalog: renderCatalog,
   model: renderModel,
   compare: renderCompare,
   scenario: renderScenario,
+  picker: renderPicker,
+  daily: renderDaily,
+  endless: renderEndless,
 };
 
 const NAV_LINKS = [
@@ -60,6 +70,16 @@ function renderHeader() {
       return link;
     })
   );
+  // The Game entry point (W7.S1, C70) sits beside the nav as a direct
+  // #site-header child: the w4s1 suite pins "#site-header nav a" to the
+  // three step 1 links, so the game link must not join that list.
+  if (!header.querySelector('a[data-nav="game"]')) {
+    const game = document.createElement("a");
+    game.href = "#/game";
+    game.textContent = "Game";
+    game.dataset.nav = "game";
+    header.append(game);
+  }
 }
 
 // The Compare nav link carries the current selection so navigating to it

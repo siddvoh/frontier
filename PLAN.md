@@ -159,59 +159,59 @@ tests stay green regardless. Modules under `docs/js/game/` import nothing
 outside `docs/js/`, never fetch (C13 stays one fetch site), and access
 localStorage only through the W6.S3 module (C65).
 
-- [ ] W6.S1 | files: scripts/validate.js, scripts/merge.js, tests/fixtures/w6s1/, tests/w6s1.test.js | pipeline support for surprises data
+- [x] W6.S1 | files: scripts/validate.js, scripts/merge.js, tests/fixtures/w6s1/, tests/w6s1.test.js | pipeline support for surprises data
   - validate.js enforces schema 12.5 on data/surprises.json and the amended 12.4 (required, possibly empty, `surprises` array in the artifact): both modelIds exist in curated.json, `field` is one of the six C59 stat fields, and against the built artifact (skipped gracefully when docs/data/models.json is absent, the W1.S3 convention) both models are non-null on that field with differing values; a test per rule feeds an invalid fixture and asserts nonzero exit (C55, C56)
   - merge.js copies surprises.json verbatim into the artifact as top-level `surprises`; fixture merge test; the C18 determinism test extends over the new field (C57, C18)
   - After this slice `npm run build && npm run validate` exit 0 against committed data with the owner-supplied surprises.json flowing through, and the regenerated docs/data/models.json is committed (C57, done-item 9); missing or invalid surprises.json fails loudly and the slice never creates or edits it (C55)
-- [ ] W6.S2 | files: docs/js/game/questions.js, tests/fixtures/w6s2/, tests/w6s2.test.js | seeded question generator with eight templates
+- [x] W6.S2 | files: docs/js/game/questions.js, tests/fixtures/w6s2/, tests/w6s2.test.js | seeded question generator with eight templates
   - xmur3 and mulberry32 byte-identical to the C58 listing; unit test pins the first three outputs of `mulberry32(xmur3("2026-07-15")())` against committed constants; no Math.random, no DOM, no fetch, no storage, no imports outside docs/js/ (C58, C19)
   - Eight templates exactly per C59 with per-template validity unit tests including null-field and equal-value exclusions; question id is `${templateId}:${idLow}:${idHigh}` with ids in lexicographic order; scenario templates use the exact unrounded midpoint budget so exactly one model qualifies per C24 (C59)
   - Reveal data per C60: stat templates `{field, valueA, valueB}`; scenario templates carry budget, volumes, both costs, and both formula strings compared verbatim to engine.js output (C60)
   - `generateDaily(seed, artifact)` deterministic (deep-equal on same seed and artifact), selection unique by (unordered pair, templateId), artifact-order enumeration with the seeded rng as the only source of choice including A/B order, count `min(10, poolSize)`, adjacent dates differ in at least one question id; at least 2 surprise-derived questions when available, all valid ones when fewer (fixture pools 0, 1, 3); endless sequence from `mulberry32(seed)` reproducible on a fixed seed (C61, C62, C63)
-- [ ] W6.S3 | files: docs/js/game/storage.js, tests/w6s3.test.js | localStorage module with streak state
+- [x] W6.S3 | files: docs/js/game/storage.js, tests/w6s3.test.js | localStorage module with streak state
   - Reads and writes exactly one key `frontier.game.v1` holding JSON per schema 12.6; round-trip unit test against the schema; this module is the only localStorage access point in docs/js (C65)
   - Corrupt JSON, `{"version":99}`, missing value, and a throwing localStorage stub all degrade to the fresh default `{"version":1,"endless":{"best":0},"daily":{}}` and never throw to the caller (C66)
   - Streak helpers: increment on correct, reset to 0 on wrong with play continuing, best streak is the maximum ever reached and persists across sessions via the module; unit tests for increment, reset, best retention (C64)
   - Exposes daily-record read/write (questionIds, picks, correct, completed) keyed by UTC date string, the contract the W8.S2 daily view consumes (12.6, C67 groundwork)
-- [ ] W6.S4 | files: docs/js/game/share.js, tests/w6s4.test.js | share string builder with copy helper
+- [x] W6.S4 | files: docs/js/game/share.js, tests/w6s4.test.js | share string builder with copy helper
   - Exports the single constant `LAUNCH_DATE = "2026-07-15"` and a builder returning exactly `Frontier #${N} ${X}/${M}` + `"\n"` + M squares (U+1F7E9 correct, U+1F7E5 wrong, in question order), N per the C68 day formula with launch day #1; unit test asserts the exact string for a fixture record and date (C68)
   - Copy helper uses `navigator.clipboard.writeText` when available, else a readonly textarea with `document.execCommand("copy")`, and reports a copied state for the button; jsdom tests stub both paths (C69)
   - No storage access, no fetch, no imports outside docs/js/; consumed by the W8.S2 results screen
-- [ ] W6.S5 | files: tests/w4s1.test.js | rescope the step 1 game-word audit to the C74 file set
+- [x] W6.S5 | files: tests/w4s1.test.js | rescope the step 1 game-word audit to the C74 file set
   - The docs/-wide ban on "game", "puzzle", "streak", "score" narrows to exactly the five step 1 view modules (catalog, model, compare, scenario, timeline) plus engine.js, keeping the established fmtScore / "benchmark score" allowance (C74, amended done-item 7); docs/js/game/, router and main wiring, styles, data, and tests are exempt per SPEC section 14
   - Every other w4s1 assertion stays unweakened: step 1 glass ids per rendered step 1 view and index.html, backdrop-filter and --surface-glass only in the @supports .glass rule, no `.skip(` or `.todo(`, absolute refs limited to the epoch.ai link (C43, C50, C2)
   - Wave gate: with all Wave 6 slices merged, `npm test` is green even though docs/js/game/ now exists
 
 ## Wave 7: game shell (routes, stub views, styles)
 
-- [ ] W7.S1 | files: docs/js/router.js, docs/js/main.js, docs/js/game/views/picker.js, docs/js/game/views/daily.js, docs/js/game/views/endless.js, tests/w7s1.test.js | game routes with mode picker and stub views
+- [x] W7.S1 | files: docs/js/router.js, docs/js/main.js, docs/js/game/views/picker.js, docs/js/game/views/daily.js, docs/js/game/views/endless.js, tests/w7s1.test.js | game routes with mode picker and stub views
   - router.js parses `#/game` (picker), `#/game/daily`, and `#/game/endless` with an optional `?seed=` param; unknown `#/game/...` sub-routes resolve to the picker; jsdom tests per route including the unknown case; all step 1 routes unchanged (C70, C28)
   - Game views are pure `render(state)` functions per the W2.S3 contract; main.js dispatches the three game routes and adds a Game nav link; main.js remains the single fetch site so question data reaches views only through the artifact in state (C70, C29, C13)
   - picker.js renders links to daily and endless; daily.js and endless.js are minimal stubs (heading plus muted placeholder) rewritten by exactly one Wave 8 slice each; the five step 1 view modules and engine.js are untouched (C74)
-- [ ] W7.S2 | files: docs/css/styles.css, tests/w7s2.test.js | game styles from existing tokens only
+- [x] W7.S2 | files: docs/css/styles.css, tests/w7s2.test.js | game styles from existing tokens only
   - `#game-cards` option buttons: `min-height: var(--sp-8)`, full column width below 720px, accent `:focus-visible` ring reused; streak / "q of M" display, reveal block, and next-question control styled from existing tokens; `#game-results` squares row and copy button styled likewise (C71, C72, C73)
   - No new CSS file, no new tokens, no new glass rules: `#game-cards` and `#game-results` get glass only by carrying the `.glass` class in Wave 8 markup; box-shadow count (1) and backdrop-filter count (2) stay pinned; keep W5.S1's exact selector-list conventions for the w5s1 ruleBlock helper (C73, amended C43, C45, C44)
   - All W1.S2 and W5.S1 checks pass unweakened: raw colors only in tokens.css, token-only sizes, spacing, radii, no `gradient(`, single `min-width: 720px` query, motion rules intact (C36-C47, C73)
 
 ## Wave 8: game views (each rewrites its Wave 7 stub)
 
-- [ ] W8.S1 | files: docs/js/game/views/endless.js, tests/w8s1.test.js | endless mode question screen
+- [x] W8.S1 | files: docs/js/game/views/endless.js, tests/w8s1.test.js | endless mode question screen
   - Draws the infinite question sequence from questions.js seeded by `?seed=` when present, else `Date.now()` at session start; with `?seed=` the rendered sequence is reproducible, asserted by test (C63)
   - Two `<button>` option cards inside `#game-cards` (carrying `.glass`); a running streak is visible; a wrong answer resets the streak to 0 with play continuing; best streak persists via the storage module only, never direct localStorage (C71, C64, C65)
   - After an answer the reveal state shows the real C60 values (both formula strings for scenario templates) and a next-question control; jsdom tests assert button semantics, reveal content per template, and the next-question flow (C71, C60)
-- [ ] W8.S2 | files: docs/js/game/views/daily.js, tests/w8s2.test.js | daily mode flow with results screen
+- [x] W8.S2 | files: docs/js/game/views/daily.js, tests/w8s2.test.js | daily mode flow with results screen
   - Daily questions come from `generateDaily(xmur3(utcDateString)(), artifact)` with the view's date injectable for tests; answers are recorded to the storage module as the player progresses, one recorded play per UTC date; progress "q of M" is visible and the reveal state matches the W8.S1 card contract (C61, C67, C71)
   - Once today's record is complete, revisiting `#/game/daily` renders the `#game-results` screen (carrying `.glass`), not a replay: X/M, per-question squares, the exact C68 share string, and the C69 copy button; jsdom test uses a pre-seeded completed record (C67, C72)
   - Pre-launch: with an injected date earlier than LAUNCH_DATE the view renders a notice containing the literal "2026-07-15", generates no questions, renders no `#game-cards`, and a spy on the storage module records zero writes (C76)
 
 ## Wave 9: STEP 2 integration audit and harness
 
-- [ ] W9.S1 | files: tests/w9s1.test.js | amended glass scoping with whole-game audit
+- [x] W9.S1 | files: tests/w9s1.test.js | amended glass scoping with whole-game audit
   - Renders every step 1 view, every game view, and index.html, asserting each element carrying `.glass` matches one of the six amended C43 selectors (`#site-header`, `#compare-tray`, `#scenario-results`, `#model-overlay`, `#game-cards`, `#game-results`), and that `--surface-glass` and `backdrop-filter` appear only in the `.glass` rules (amended C43)
   - Audit greps: the six C74 files contain no game/puzzle/streak/score feature strings (fmtScore and "benchmark score" allowance preserved); docs/js still has exactly one `fetch(`; localStorage appears only in docs/js/game/storage.js with the single `frontier.game.v1` key; no Math.random anywhere in docs/js including docs/js/game/ (C74, C13, C65, C19, section 15)
   - Suite-completeness: every C75 area (templates, PRNG constants, daily determinism, surprises, endless, streak, storage, share string, game view renders) has a suite under tests/; no `.skip(` or `.todo(` (C75, C50)
   - Done means: fresh clone `npm ci && npm run build && npm run validate && npm test` all exit 0 offline with `#/game` playable end to end when serving docs/ locally (done-items 8, 9, 10)
-- [ ] W9.S2 | files: scripts/screenshot.js, tests/w9s2.test.js | harness extended to the four game states
+- [x] W9.S2 | files: scripts/screenshot.js, tests/w9s2.test.js | harness extended to the four game states
   - Adds the C75 states: `#/game` (picker), `#/game/endless?seed=1` (question), the same after clicking option A (reveal), and `#/game/daily` with a pre-seeded completed `frontier.game.v1` record (results), each at 375x812 and 1440x900 in light and dark: 32 PNGs total, no assertions, exits 0 (amended C53, C75)
   - The harness seeds localStorage via the browser context before the daily-results shot; when run before LAUNCH_DATE that state legitimately captures the C76 notice instead of results (note it in AGENT_NOTES.md); the harness stays outside npm test and every workflow (C75, C54, C7)
   - Verified by execution: `npm run shots` exits 0 and `shots/` holds exactly 32 PNGs; the four game states are visually inspected per the standing rule before flipping this box (done-item 11)

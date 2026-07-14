@@ -1,7 +1,8 @@
 // scripts/merge.js
-// Merge pipeline (SPEC C12-C16, C18, C19). Reads the curated master file,
-// the events file, the committed Epoch CSV snapshot, and the logical-to-CSV
-// column map, then writes exactly one artifact: docs/data/models.json.
+// Merge pipeline (SPEC C12-C16, C18, C19, C55, C57). Reads the curated
+// master file, the events file, the owner-authored surprises file, the
+// committed Epoch CSV snapshot, and the logical-to-CSV column map, then
+// writes exactly one artifact: docs/data/models.json.
 //
 // Rules enforced here:
 //   - curated.json is master: every curated record appears, nothing else.
@@ -10,17 +11,28 @@
 //   - Only the mapped enrichment fields are copied from the CSV, and every
 //     CSV header name comes from the column map file, never from this file.
 //   - Empty CSV fields become null. No stat value is ever defaulted.
+//   - surprises.json is copied verbatim into the artifact as a top-level
+//     `surprises` array (C57). It is owner-authored (C55): on the default
+//     path a missing or invalid file fails loudly and is never created or
+//     repaired here.
 //
 // Testability override: a single optional argument (or the environment
 // variable FRONTIER_DATA_DIR) names a directory containing curated.json,
-// events.json, epoch_notable_ai_models.csv, and epoch-columns.json; the
-// artifact is then written to models.json inside that same directory.
+// events.json, epoch_notable_ai_models.csv, epoch-columns.json, and
+// optionally surprises.json (fixture dirs without it build the pre-surprise
+// artifact shape); the artifact is then written to models.json inside that
+// same directory.
 
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "./lib/csv.js";
-import { ATTRIBUTION, validateCurated, validateEvents } from "./validate.js";
+import {
+  ATTRIBUTION,
+  validateCurated,
+  validateEvents,
+  validateSurprises,
+} from "./validate.js";
 
 // Logical enrichment keys expected in the column map (values are the CSV
 // header names; C12 forbids hardcoding those here).
@@ -139,11 +151,23 @@ function mergeRecord(record, epochRow, columns) {
 /**
  * Build the models.json artifact object from in-memory inputs.
  *
+ * `surprises` is copied verbatim as the top-level `surprises` array
+ * (amended 12.4, C57). When omitted (pre-surprise fixture directories) the
+ * key is absent, preserving the original 12.4 shape.
+ *
  * @param {{ curated: object[], events: object[], csvText: string,
- *           columns: Record<string, string>, generatedAt: string }} inputs
- * @returns {object} the artifact (12.4 shape)
+ *           columns: Record<string, string>, generatedAt: string,
+ *           surprises?: object[] }} inputs
+ * @returns {object} the artifact (amended 12.4 shape)
  */
-export function buildArtifact({ curated, events, csvText, columns, generatedAt }) {
+export function buildArtifact({
+  curated,
+  events,
+  csvText,
+  columns,
+  generatedAt,
+  surprises,
+}) {
   const byName = indexEpochRows(csvText, columns);
   const models = curated.map((record) =>
     mergeRecord(
@@ -153,7 +177,9 @@ export function buildArtifact({ curated, events, csvText, columns, generatedAt }
     )
   );
   models.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-  return { generatedAt, attribution: ATTRIBUTION, models, events };
+  const artifact = { generatedAt, attribution: ATTRIBUTION, models, events };
+  if (surprises !== undefined) artifact.surprises = surprises;
+  return artifact;
 }
 
 // ---------------------------------------------------------------------------
@@ -168,18 +194,22 @@ function resolvePaths() {
     return {
       curated: join(dir, "curated.json"),
       events: join(dir, "events.json"),
+      surprises: join(dir, "surprises.json"),
       csv: join(dir, "epoch_notable_ai_models.csv"),
       columns: join(dir, "epoch-columns.json"),
       artifact: join(dir, "models.json"),
+      isOverride: true,
     };
   }
   const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
   return {
     curated: join(repoRoot, "data", "curated.json"),
     events: join(repoRoot, "data", "events.json"),
+    surprises: join(repoRoot, "data", "surprises.json"),
     csv: join(repoRoot, "data", "epoch_notable_ai_models.csv"),
     columns: join(repoRoot, "data", "epoch-columns.json"),
     artifact: join(repoRoot, "docs", "data", "models.json"),
+    isOverride: false,
   };
 }
 
@@ -205,13 +235,22 @@ function main() {
   const columns = loadJson(paths.columns, "epoch-columns");
   const csvText = readFileSync(paths.csv, "utf8");
 
-  // Fail loudly on invalid inputs (C10/C11); never work around them.
+  // Owner-authored surprises (C55): required on the default path (a missing
+  // data/surprises.json throws loudly via loadJson); override fixture dirs
+  // without the file keep the pre-surprise artifact shape.
+  let surprises;
+  if (existsSync(paths.surprises) || !paths.isOverride) {
+    surprises = loadJson(paths.surprises, "surprises");
+  }
+
+  // Fail loudly on invalid inputs (C10/C11/C55); never work around them.
+  const curatedIds = new Set(curated.map((record) => record.id));
   const inputErrors = [
     ...validateCurated(curated),
-    ...validateEvents(
-      events,
-      new Set(curated.map((record) => record.id))
-    ),
+    ...validateEvents(events, curatedIds),
+    ...(surprises === undefined
+      ? []
+      : validateSurprises(surprises, curatedIds)),
   ];
   if (inputErrors.length > 0) {
     for (const violation of inputErrors) {
@@ -226,12 +265,15 @@ function main() {
     csvText,
     columns,
     generatedAt: new Date().toISOString(),
+    surprises,
   });
 
   mkdirSync(dirname(paths.artifact), { recursive: true });
   writeFileSync(paths.artifact, `${JSON.stringify(artifact, null, 2)}\n`);
+  const surprisesNote =
+    surprises === undefined ? "" : `, ${artifact.surprises.length} surprises`;
   console.log(
-    `merge: wrote ${paths.artifact} (${artifact.models.length} models, ${artifact.events.length} events)`
+    `merge: wrote ${paths.artifact} (${artifact.models.length} models, ${artifact.events.length} events${surprisesNote})`
   );
 }
 

@@ -1,7 +1,9 @@
-// Hash router (C28). Pure functions: parseHash(hash) -> route state,
-// toHash(state) -> hash string. Compare and scenario state round-trips:
-// parseHash(toHash(state)) deep-equals state. Unknown routes resolve to
-// the catalog. No DOM access here; main.js owns the hashchange listener.
+// Hash router (C28, C70). Pure functions: parseHash(hash) -> route state,
+// toHash(state) -> hash string. Compare, scenario, and game state
+// round-trips: parseHash(toHash(state)) deep-equals state. Unknown routes
+// resolve to the catalog; unknown #/game/... sub-routes resolve to the
+// game mode picker. No DOM access here; main.js owns the hashchange
+// listener.
 
 const TASKS = new Set(["coding", "reasoning", "longdoc"]);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -48,6 +50,20 @@ function scenarioRoute(params) {
   };
 }
 
+// Game routes (C70): #/game is the mode picker, #/game/daily and
+// #/game/endless are the two modes, and only endless accepts ?seed=
+// (an invalid or absent seed is null, never a default, matching every
+// other query param here). Anything else under #/game/ is the picker.
+function gameRoute(segments, params) {
+  if (segments.length === 2 && segments[1] === "daily") {
+    return { view: "daily" };
+  }
+  if (segments.length === 2 && segments[1] === "endless") {
+    return { view: "endless", seed: parseNum(params.get("seed")) };
+  }
+  return { view: "picker" };
+}
+
 /**
  * Parse a location hash into a route state object.
  * @param {string} hash e.g. "#/model/gpt-4" or "" (empty -> catalog)
@@ -78,6 +94,9 @@ export function parseHash(hash) {
   }
   if (segments[0] === "scenario" && segments.length === 1) {
     return scenarioRoute(new URLSearchParams(query));
+  }
+  if (segments[0] === "game") {
+    return gameRoute(segments, new URLSearchParams(query));
   }
   return catalogRoute();
 }
@@ -122,6 +141,17 @@ export function toHash(state) {
     }
     const qs = params.toString();
     return qs === "" ? "#/scenario" : "#/scenario?" + qs;
+  }
+  if (state.view === "picker") {
+    return "#/game";
+  }
+  if (state.view === "daily") {
+    return "#/game/daily";
+  }
+  if (state.view === "endless") {
+    return state.seed === null
+      ? "#/game/endless"
+      : "#/game/endless?seed=" + String(state.seed);
   }
   return "#/catalog";
 }

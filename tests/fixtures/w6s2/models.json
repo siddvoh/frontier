@@ -1,0 +1,56 @@
+[
+  {
+    "id": "alpha",
+    "name": "Alpha",
+    "releaseDate": "2024-01-01",
+    "pricing": { "inputPerMTok": 1, "outputPerMTok": 2, "currency": "USD" },
+    "contextWindow": 100000,
+    "benchmarks": { "gpqaDiamond": 50, "swebenchVerified": 40 },
+    "openWeights": false
+  },
+  {
+    "id": "bravo",
+    "name": "Bravo",
+    "releaseDate": "2024-06-01",
+    "pricing": { "inputPerMTok": 2, "outputPerMTok": 4, "currency": "USD" },
+    "contextWindow": 200000,
+    "benchmarks": { "gpqaDiamond": 60, "swebenchVerified": 50 },
+    "openWeights": true
+  },
+  {
+    "id": "charlie",
+    "name": "Charlie",
+    "releaseDate": "2025-01-01",
+    "pricing": { "inputPerMTok": 3, "outputPerMTok": 6, "currency": "USD" },
+    "contextWindow": 300000,
+    "benchmarks": { "gpqaDiamond": 70, "swebenchVerified": 60 },
+    "openWeights": false
+  },
+  {
+    "id": "delta",
+    "name": "Delta",
+    "releaseDate": "2025-06-01",
+    "pricing": { "inputPerMTok": null, "outputPerMTok": null, "currency": "USD" },
+    "contextWindow": 400000,
+    "benchmarks": { "gpqaDiamond": 80, "swebenchVerified": 70 },
+    "openWeights": true
+  },
+  {
+    "id": "echo",
+    "name": "Echo",
+    "releaseDate": null,
+    "pricing": { "inputPerMTok": 5, "outputPerMTok": 10, "currency": "USD" },
+    "contextWindow": null,
+    "benchmarks": { "gpqaDiamond": null, "swebenchVerified": null },
+    "openWeights": false
+  },
+  {
+    "id": "foxtrot",
+    "name": "Foxtrot",
+    "releaseDate": "2024-01-01",
+    "pricing": { "inputPerMTok": 1, "outputPerMTok": 2, "currency": "USD" },
+    "contextWindow": 100000,
+    "benchmarks": { "gpqaDiamond": 50, "swebenchVerified": 40 },
+    "openWeights": true
+  }
+]

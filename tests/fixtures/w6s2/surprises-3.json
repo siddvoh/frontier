@@ -1,0 +1,26 @@
+[
+  {
+    "id": "context-upset",
+    "modelIds": ["alpha", "bravo"],
+    "field": "contextWindow",
+    "note": "The older model has the smaller window."
+  },
+  {
+    "id": "input-price-upset",
+    "modelIds": ["bravo", "charlie"],
+    "field": "pricing.inputPerMTok",
+    "note": "The flashier model is not the pricier one."
+  },
+  {
+    "id": "gpqa-upset",
+    "modelIds": ["alpha", "charlie"],
+    "field": "benchmarks.gpqaDiamond",
+    "note": "The newer model wins by a wide margin."
+  },
+  {
+    "id": "invalid-equal-values",
+    "modelIds": ["alpha", "foxtrot"],
+    "field": "contextWindow",
+    "note": "Invalid on purpose: equal windows, yields no question."
+  }
+]

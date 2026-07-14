@@ -1,0 +1,20 @@
+[
+  {
+    "id": "alpha-cheaper-input",
+    "modelIds": ["beta-two", "alpha-one"],
+    "field": "pricing.inputPerMTok",
+    "note": "Beta Two costs three times more per input token than Alpha One."
+  },
+  {
+    "id": "beta-bigger-context",
+    "modelIds": ["alpha-one", "beta-two"],
+    "field": "contextWindow",
+    "note": "Beta Two ships twice the context window of Alpha One."
+  },
+  {
+    "id": "beta-released-first",
+    "modelIds": ["alpha-one", "beta-two"],
+    "field": "releaseDate",
+    "note": "Beta Two shipped almost a year before Alpha One."
+  }
+]

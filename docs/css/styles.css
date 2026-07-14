@@ -485,6 +485,75 @@ body:has(.tray-docked:not([hidden])) #app {
   padding: var(--sp-5);
 }
 
+/* Game surfaces (C71, C72, C73). #game-cards and #game-results are glass
+   hosts per amended C43: background/shadow come only from the .glass class
+   applied in Wave 8 markup, never from these rules. */
+
+#game-cards {
+  display: grid;
+  gap: var(--sp-3);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-m);
+  padding: var(--sp-4);
+  margin: 0 0 var(--sp-4);
+}
+
+/* Option cards: full column width, thumb-tappable height (C71). */
+
+#game-cards button {
+  width: 100%;
+  min-height: var(--sp-8);
+  margin: 0;
+}
+
+/* Streak (endless) or "q of M" progress (daily) display. */
+
+.game-progress {
+  color: var(--muted);
+  font-size: var(--text-1);
+  font-variant-numeric: tabular-nums;
+  margin: 0 0 var(--sp-3);
+}
+
+/* Post-answer reveal block: real values, formula strings (C60/C71). */
+
+.game-reveal {
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-s);
+  padding: var(--sp-3);
+  margin: 0 0 var(--sp-3);
+}
+
+/* Next-question control. */
+
+.game-next {
+  display: block;
+  margin: 0 0 var(--sp-3);
+}
+
+#game-results {
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-m);
+  padding: var(--sp-4);
+  margin: var(--sp-4) 0 0;
+}
+
+/* Per-question result squares row (C72). */
+
+.game-squares {
+  display: flex;
+  gap: var(--sp-1);
+  font-size: var(--text-3);
+  line-height: var(--lh-head);
+  margin: 0 0 var(--sp-3);
+}
+
+/* Share-string copy button (C69/C72). */
+
+.game-copy {
+  margin: 0 0 var(--sp-2);
+}
+
 /* Glass (C43, C44, C45): solid fallback base, one shadow declaration,
    backdrop-filter only inside the single @supports block below. */
 
@@ -555,6 +624,10 @@ body:has(.tray-docked:not([hidden])) #app {
   .form-grid .constraints,
   .form-grid button {
     grid-column: 1 / -1;
+  }
+
+  #game-cards {
+    grid-template-columns: 1fr 1fr;
   }
 
   .tray-docked {

@@ -526,8 +526,22 @@ describe("docs/ reference and copy audit (C2, section 1)", () => {
     ]);
   });
 
-  it("contains no game, puzzle, streak, or score identifiers or copy", () => {
-    for (const { rel, text } of files) {
+  it("keeps game, puzzle, streak, and score out of the C74 file set", () => {
+    // C74 (amended done-item 7): the ban applies to exactly the five step 1
+    // view modules plus engine.js. docs/js/game/, router and main wiring,
+    // styles, data, and tests are exempt per SPEC section 14.
+    const audited = [
+      path.join(docsDir, "js", "views", "catalog.js"),
+      path.join(docsDir, "js", "views", "model.js"),
+      path.join(docsDir, "js", "views", "compare.js"),
+      path.join(docsDir, "js", "views", "scenario.js"),
+      path.join(docsDir, "js", "views", "timeline.js"),
+      path.join(docsDir, "js", "engine.js"),
+    ];
+    for (const file of audited) {
+      const rel = path.relative(root, file);
+      expect(existsSync(file), rel).toBe(true);
+      const text = readFileSync(file, "utf8");
       // fmtScore and the phrase "benchmark score" describe benchmark data,
       // not a feature; everything else with these words is banned.
       const cleaned = text

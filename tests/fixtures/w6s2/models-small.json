@@ -1,0 +1,20 @@
+[
+  {
+    "id": "alpha",
+    "name": "Alpha",
+    "releaseDate": "2024-01-01",
+    "pricing": { "inputPerMTok": 1, "outputPerMTok": 2, "currency": "USD" },
+    "contextWindow": 100000,
+    "benchmarks": { "gpqaDiamond": 50, "swebenchVerified": 40 },
+    "openWeights": false
+  },
+  {
+    "id": "bravo",
+    "name": "Bravo",
+    "releaseDate": "2024-06-01",
+    "pricing": { "inputPerMTok": 2, "outputPerMTok": 4, "currency": "USD" },
+    "contextWindow": 200000,
+    "benchmarks": { "gpqaDiamond": 60, "swebenchVerified": 50 },
+    "openWeights": true
+  }
+]

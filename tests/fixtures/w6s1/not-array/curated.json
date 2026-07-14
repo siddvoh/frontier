@@ -1,0 +1,56 @@
+[
+  {
+    "id": "alpha-one",
+    "name": "Alpha One",
+    "organization": "Alpha Lab",
+    "releaseDate": "2024-05-01",
+    "epochName": null,
+    "pricing": {
+      "inputPerMTok": 1,
+      "outputPerMTok": 2,
+      "currency": "USD"
+    },
+    "contextWindow": 100000,
+    "benchmarks": {
+      "gpqaDiamond": 50,
+      "swebenchVerified": 60
+    },
+    "openWeights": true
+  },
+  {
+    "id": "beta-two",
+    "name": "Beta Two",
+    "organization": "Beta Lab",
+    "releaseDate": "2023-06-15",
+    "epochName": null,
+    "pricing": {
+      "inputPerMTok": 3,
+      "outputPerMTok": 9,
+      "currency": "USD"
+    },
+    "contextWindow": 200000,
+    "benchmarks": {
+      "gpqaDiamond": 70.5,
+      "swebenchVerified": null
+    },
+    "openWeights": false
+  },
+  {
+    "id": "gamma-three",
+    "name": "Gamma Three",
+    "organization": "Gamma Lab",
+    "releaseDate": null,
+    "epochName": null,
+    "pricing": {
+      "inputPerMTok": null,
+      "outputPerMTok": null,
+      "currency": "USD"
+    },
+    "contextWindow": null,
+    "benchmarks": {
+      "gpqaDiamond": null,
+      "swebenchVerified": null
+    },
+    "openWeights": null
+  }
+]

@@ -1,0 +1,8 @@
+[
+  {
+    "id": "swebench-null-on-beta",
+    "modelIds": ["alpha-one", "beta-two"],
+    "field": "benchmarks.swebenchVerified",
+    "note": "Beta Two is null on this benchmark in the artifact."
+  }
+]

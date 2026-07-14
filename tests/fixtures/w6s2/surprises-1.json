@@ -1,0 +1,14 @@
+[
+  {
+    "id": "context-upset",
+    "modelIds": ["alpha", "bravo"],
+    "field": "contextWindow",
+    "note": "The older model has the smaller window."
+  },
+  {
+    "id": "invalid-null-price",
+    "modelIds": ["delta", "echo"],
+    "field": "pricing.inputPerMTok",
+    "note": "Invalid on purpose: delta has no prices, yields no question."
+  }
+]

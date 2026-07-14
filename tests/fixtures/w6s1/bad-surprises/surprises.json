@@ -1,0 +1,50 @@
+[
+  {
+    "id": "Bad_ID",
+    "modelIds": ["alpha-one", "beta-two"],
+    "field": "pricing.inputPerMTok",
+    "note": "id breaks the pattern"
+  },
+  {
+    "id": "field-outside-enum",
+    "modelIds": ["alpha-one", "beta-two"],
+    "field": "epoch.parameters",
+    "note": "field is not one of the six stat fields"
+  },
+  {
+    "id": "ghost-reference",
+    "modelIds": ["alpha-one", "ghost-model"],
+    "field": "contextWindow",
+    "note": "references a model missing from curated.json"
+  },
+  {
+    "id": "duplicate-models",
+    "modelIds": ["alpha-one", "alpha-one"],
+    "field": "contextWindow",
+    "note": "the two model ids must be unique"
+  },
+  {
+    "id": "only-one-model",
+    "modelIds": ["alpha-one"],
+    "field": "contextWindow",
+    "note": "needs exactly two model ids"
+  },
+  {
+    "id": "missing-note",
+    "modelIds": ["alpha-one", "beta-two"],
+    "field": "contextWindow"
+  },
+  {
+    "id": "extra-key",
+    "modelIds": ["alpha-one", "beta-two"],
+    "field": "contextWindow",
+    "note": "carries an unknown property",
+    "bonus": true
+  },
+  {
+    "id": "empty-note",
+    "modelIds": ["alpha-one", "beta-two"],
+    "field": "contextWindow",
+    "note": ""
+  }
+]
