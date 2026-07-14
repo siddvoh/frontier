@@ -11,9 +11,10 @@ Rendered site: GitHub Pages serving the `docs/` directory from `main`.
 
 ## 1. Non-goals
 
-- No game features, scoring, streaks, or puzzle logic of any kind. The data
-  layer must stay reusable (pure functions, plain JSON), but nothing
-  game-related appears in code, markup, data, or copy.
+- (Amended by STEP 2.) Step 1 surfaces stay game-free: the catalog, model,
+  compare, scenario, and timeline view modules and engine.js contain no game
+  code, markup, or copy. The data layer stays reusable (pure functions,
+  plain JSON). The game's sanctioned home is the `#/game` route (STEP 2).
 - No server, backend, accounts, auth, cookies, analytics, or telemetry.
 - No JS/CSS frameworks, no chart or graphing libraries, no runtime
   dependencies at all. Dev-only tooling is allowed (see C6).
@@ -279,12 +280,14 @@ All values below are exact contract values in `docs/css/tokens.css`.
 - C42. No gradients anywhere; the string `gradient(` appears nowhere in
   `docs/`.
   Check: grep.
-- C43. Glass is scoped to exactly three components, expressed as one class:
-  `.glass` may be applied only to (a) the sticky site header `#site-header`,
-  (b) the floating panels `#compare-tray` and `#scenario-results`, and
-  (c) the model card overlay `#model-overlay`. A jsdom test renders each
-  view and asserts every element carrying `.glass` matches one of those four
-  selectors, and nothing else uses `--surface-glass` or `backdrop-filter`.
+- C43. (Amended by STEP 2.) Glass is scoped to exactly five components,
+  expressed as one class: `.glass` may be applied only to (a) the sticky
+  site header `#site-header`, (b) the floating panels `#compare-tray` and
+  `#scenario-results`, (c) the model card overlay `#model-overlay`, and
+  (d) the game surfaces `#game-cards` and `#game-results` (STEP 2). A jsdom
+  test renders each view and asserts every element carrying `.glass` matches
+  one of those six selectors, and nothing else uses `--surface-glass` or
+  `backdrop-filter`.
   Check: test plus grep (`backdrop-filter` and `--surface-glass)` usages
   appear only in the `.glass` rules).
 - C44. Glass fallback: the `.glass` base rule (outside any `@supports`) uses
@@ -344,15 +347,17 @@ All values below are exact contract values in `docs/css/tokens.css`.
 
 ## 11. Screenshot harness (human eyeballing only)
 
-- C53. `scripts/screenshot.js`, run via `npm run shots`, uses playwright
-  (devDependency) to: serve `docs/` on a local port, then for each route in
-  `#/catalog`, `#/model/:id` (an id present in the committed models.json),
-  `#/compare?ids=` (two committed ids), `#/scenario` at each viewport
-  375x812 and 1440x900 and each `colorScheme` `light` and `dark`, write a
-  PNG to `shots/` named `{route-slug}-{width}x{height}-{theme}.png`. That is
-  16 PNGs. No assertions, no diffing; it exits 0 after writing the files.
+- C53. (Amended by STEP 2.) `scripts/screenshot.js`, run via `npm run
+  shots`, uses playwright (devDependency) to: serve `docs/` on a local port,
+  then for each of eight states: `#/catalog`, `#/model/:id` (an id present
+  in the committed models.json), `#/compare?ids=` (two committed ids),
+  `#/scenario`, plus the four STEP 2 game states defined in C75, at each
+  viewport 375x812 and 1440x900 and each `colorScheme` `light` and `dark`,
+  write a PNG to `shots/` named `{state-slug}-{width}x{height}-{theme}.png`.
+  That is 32 PNGs. No assertions, no diffing; it exits 0 after writing the
+  files.
   Check: with playwright browsers installed, `npm run shots` exits 0 and
-  `ls shots/*.png | wc -l` prints 16.
+  `ls shots/*.png | wc -l` prints 32.
 - C54. The harness is outside every quality gate: not referenced by
   `npm test`, the CI workflow, or the nightly workflow.
   Check: grep workflows and tests for `shots`/`screenshot` finds nothing.
@@ -485,11 +490,309 @@ All of the following hold at once, verified by the critic by execution:
    the catalog with the committed data; all four routes work; a model with
    null fields shows em dashes and appears in no ranking that needs the
    missing field.
-4. `npm run shots` (after `npx playwright install chromium`) produces
-   exactly 16 PNGs in `shots/` (C53).
+4. (Amended by STEP 2.) `npm run shots` (after `npx playwright install
+   chromium`) produces exactly 32 PNGs in `shots/` (C53, C75).
 5. No file under `docs/` references anything outside `docs/`; the site
    works from a subpath (GitHub Pages project site).
 6. `data/curated.json` and `data/events.json` have no loop-authored edits
    (C10, C11).
-7. The words "game", "puzzle", "streak", "score" (as features) appear
-   nowhere in `docs/` copy or code identifiers (section 1).
+7. (Amended by STEP 2.) The words "game", "puzzle", "streak", "score" (as
+   features) appear nowhere in the five step 1 view modules
+   (catalog/model/compare/scenario/timeline) or engine.js; STEP 2 game
+   files, router/main wiring, styles, data, and tests are exempt.
+
+# STEP 2: GAME
+
+A "higher or lower" game for AI models at `#/game`, built entirely on the
+committed models.json artifact and the existing scenario engine. Static,
+free, no server, no accounts, no invented data. All step 1 rules carry
+over; the only step 1 lines STEP 2 amends are marked "(Amended by STEP 2)":
+the "no game features" non-goal, definition-of-done items 4 and 7, C43
+(glass allowlist +2 game selectors), C53 (32 PNGs), and schema 12.4 (gains
+a required `surprises` array, section 16). Everything else in C1-C54 is
+unchanged. New criteria continue from C55.
+
+## 15. Game non-goals
+
+- No leaderboards, multiplayer, notifications, share images/cards (the
+  share output is a plain string), ads, or analytics.
+- No new fetch sites, no new storage keys beyond the one in C65, no game
+  code in the five step 1 view modules or engine.js.
+- No question may display or depend on a value that is not present in the
+  committed artifact; the C19 no-invention rule applies to the game.
+
+## 16. Surprises data
+
+- C55. `data/surprises.json` is hand-written by the repository owner with
+  the same authorship protection as C10: the agent loop never creates,
+  edits, or extends it; if invalid, the pipeline fails loudly. Each entry
+  pairs two model ids on a stat field where the intuitive answer is wrong.
+  Schema 12.5.
+  Check: `npm run validate` covers it; git history per C10.
+- C56. `scripts/validate.js` additionally enforces: both `modelIds` exist
+  in curated.json and `field` is one of the six C59 stat fields; and,
+  against the built artifact (skipped gracefully when docs/data/models.json
+  does not exist yet, per the W1.S3 convention), both models are non-null
+  on that field and the two values differ. The artifact check matters
+  because some fields (e.g. a release date) may be Epoch-enriched rather
+  than curated.
+  Check: invalid fixtures per rule exit nonzero (test).
+- C57. `scripts/merge.js` copies surprises.json verbatim into the artifact
+  as a top-level `surprises` array (schema 12.4 as amended). C18
+  determinism covers the extended artifact.
+  Check: merge fixture test; `npm run build && npm run validate` exit 0.
+
+## 17. Question generator
+
+Pure functions in `docs/js/game/questions.js`: no DOM, no fetch, no
+storage, no imports outside `docs/js/`.
+
+- C58. Seeded PRNG, exact: `xmur3` string-hash seeds `mulberry32`.
+  ```js
+  export function xmur3(str) {
+    let h = 1779033703 ^ str.length;
+    for (let i = 0; i < str.length; i++) {
+      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+    return () => {
+      h = Math.imul(h ^ (h >>> 16), 2246822507);
+      h = Math.imul(h ^ (h >>> 13), 3266489909);
+      return (h ^= h >>> 16) >>> 0;
+    };
+  }
+  export function mulberry32(a) {
+    return () => {
+      a |= 0; a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  ```
+  The daily seed is `xmur3(utcDateString)()` where `utcDateString` is
+  `YYYY-MM-DD` in UTC. These are the only PRNG implementations in docs/js;
+  `Math.random` stays banned (C19 grep extends over docs/js/game/).
+  Check: code identical to the listing (grep); PRNG unit test asserts the
+  first three outputs of `mulberry32(xmur3("2026-07-15")())` against
+  committed constants.
+- C59. Every question is a plain object `{ id, templateId, prompt, optionA,
+  optionB, correctIndex, revealData }` where optionA/optionB are model ids,
+  correctIndex is 0 or 1, and `id` is `${templateId}:${idLow}:${idHigh}`
+  with the two model ids in lexicographic order. Exactly eight templates:
+  - `stat-input-price`, `stat-output-price`, `stat-context`, `stat-gpqa`,
+    `stat-swebench`: "which is higher on <field>" (for prices: "which costs
+    more"); valid only when both models have the field non-null and the
+    values differ.
+  - `stat-released-first`: "which released first"; valid only when both
+    releaseDates are non-null and differ.
+  - `scen-input-heavy` (50 Mtok in / 5 Mtok out) and `scen-output-heavy`
+    (5 Mtok in / 50 Mtok out): "which fits the budget"; task `longdoc`;
+    valid only when both models have both prices and non-null contextWindow
+    and the two C23 costs differ; the budget is the exact unrounded
+    midpoint `(costA + costB) / 2` (display formatting happens in the
+    view), which guarantees costLow < budget < costHigh, so exactly one
+    model qualifies per C24.
+  Check: per-template validity unit tests, including null-field and
+  equal-value exclusions.
+- C60. Reveal data: stat templates expose `{ field, valueA, valueB }`;
+  scenario templates expose `{ budget, inputMTok, outputMTok, costA, costB,
+  formulaA, formulaB }` where the formulas are the exact C26 strings from
+  the engine. Reveal values are read from the artifact or computed by C23;
+  nothing else.
+  Check: unit test compares reveal formulas to engine output verbatim.
+- C61. `generateDaily(seed, artifact)` is deterministic: same seed and same
+  artifact yield a deep-equal question list (that is a test). Selection is
+  unique by (unordered pair, templateId); the same pair may recur on
+  different templates. Candidate enumeration follows artifact order (models
+  sorted by id); the seeded rng is the only source of choice, including
+  A/B display order. Count is `min(10, poolSize)`.
+  Check: determinism test; two adjacent dates ("2026-07-15", "2026-07-16")
+  produce lists differing in at least one question id (fixture-tested).
+- C62. When the artifact's surprises yield at least 2 valid questions, the
+  daily contains at least 2 of them; when fewer, it contains all valid
+  ones. A surprise-derived question is the stat question whose (pair,
+  field) matches a surprises entry.
+  Check: unit tests with fixture surprise pools of size 0, 1, and 3.
+- C63. Endless mode draws an infinite question sequence from
+  `mulberry32(seed)` where seed comes from the `?seed=` hash param when
+  present, else `Date.now()` at session start. With `?seed=` the sequence
+  is reproducible (test).
+  Check: unit test on a fixed seed; grep confirms no `Math.random`.
+
+## 18. Modes and persistence
+
+- C64. Endless: a running streak increments on each correct answer and
+  resets to 0 on a wrong answer (play continues); best streak is the
+  maximum ever reached and persists across sessions.
+  Check: unit tests for increment, reset, best retention.
+- C65. Persistence uses exactly one localStorage key, `frontier.game.v1`,
+  holding JSON per schema 12.6. No other storage key is read or written
+  anywhere in docs/js.
+  Check: grep for `localStorage` shows access via one storage module only;
+  round-trip unit test against schema 12.6.
+- C66. Corrupt, missing, wrong-version, or throwing storage (quota,
+  disabled) degrades to the fresh default state and never throws to the
+  caller.
+  Check: unit tests feed garbage JSON, `{"version":99}`, and a throwing
+  localStorage stub; all return the default state.
+- C67. Daily: one recorded play per UTC date. Answers are recorded as the
+  player progresses; once today's record is complete, revisiting
+  `#/game/daily` renders the results screen, not a replay.
+  Check: jsdom test with a pre-seeded completed record.
+- C76. Pre-launch: when the current UTC date is earlier than `LAUNCH_DATE`,
+  `#/game/daily` renders a notice that the daily starts on that date (the
+  rendered text contains the literal `LAUNCH_DATE` string "2026-07-15")
+  instead of a game, generates no questions, and performs no localStorage
+  write.
+  Check: jsdom test renders the daily view with a fixed pre-launch date
+  (e.g. "2026-07-10") injected as the view's date input, asserts the
+  notice text, the absence of `#game-cards`, and that a spy on the storage
+  module records zero writes.
+
+## 19. Share string
+
+- C68. The daily results share string is exactly
+  `Frontier #${N} ${X}/${M}` + `"\n"` + M squares, where squares are
+  U+1F7E9 (green, correct) or U+1F7E5 (red, wrong) in question order,
+  X = correct count, M = question count, and
+  `N = floor((Date.UTC(today) - Date.UTC(LAUNCH)) / 86400000) + 1` with the
+  single exported constant `LAUNCH_DATE = "2026-07-15"` (launch day is #1).
+  Check: unit test asserts the exact string for a fixture record and date.
+- C69. The copy button uses `navigator.clipboard.writeText` when available,
+  else selects the string in a readonly textarea and attempts
+  `document.execCommand("copy")`; the button reflects a copied state.
+  Check: jsdom tests stub both paths.
+
+## 20. Game UI
+
+- C70. Routes: `#/game` (mode picker), `#/game/daily`, `#/game/endless`
+  (accepts `?seed=`). Unknown `#/game/...` sub-routes render the picker.
+  Game views are pure render functions per C29, and question data reaches
+  them only through the existing single fetch: the C13 check (exactly one
+  fetched URL in docs/js) still passes.
+  Check: router jsdom tests; C13 grep.
+- C71. Question screen: the two options are `<button>` cards inside
+  `#game-cards`, each with `min-height: var(--sp-8)` and full column width
+  below 720px (thumb-tappable); a streak (endless) or progress "q of M"
+  (daily) display is visible; after an answer the reveal state shows the
+  real values per C60 (both formula strings for scenario questions) and a
+  next-question control.
+  Check: jsdom tests assert button semantics, the min-height token, reveal
+  content per template, and next-question flow.
+- C72. Daily results screen: `#game-results` shows X/M, the per-question
+  squares, the C68 share string, and the C69 copy button.
+  Check: jsdom test on a fixture completed record.
+- C73. All step 1 design criteria (C36-C47) apply to the game styles in
+  docs/css/styles.css unchanged; glass appears only per amended C43
+  (`#game-cards`, `#game-results` are the only additions); the game reuses
+  the existing tokens and the MISSING constant module (C20) and adds no
+  CSS file (C2 file list unchanged).
+  Check: the existing W1.S2-style greps and the amended C43 test.
+- C74. The five step 1 view modules and engine.js are byte-identical in
+  game-related content: they contain none of the strings "game", "puzzle",
+  "streak", "score" (amended non-goal and done-item 7).
+  Check: grep those six files.
+
+## 21. Game testing and harness
+
+- C75. `npm test` covers, under vitest/jsdom with fixture artifacts:
+  per-template generator validity (C59), PRNG constants (C58), daily
+  determinism and date variation (C61), surprise inclusion (C62), endless
+  reproducibility (C63), streak logic (C64), storage round-trip and
+  corruption (C65, C66), the exact share string (C68), and game view
+  renders (C70-C72). Playwright stays out of npm test (C7, C54 unchanged).
+  The four game screenshot states for C53 are: `#/game` (picker),
+  `#/game/endless?seed=1` (question), the same after clicking option A
+  (reveal), and `#/game/daily` with a pre-seeded completed
+  `frontier.game.v1` record (results). The harness seeds localStorage
+  before the results shot; it remains outside every gate.
+  Check: suite files exist per area and `npm test` exits 0; C53's check
+  now counts 32 PNGs.
+
+## 22. Schemas (STEP 2, excluded from the line count)
+
+### 12.4 amendment
+
+The artifact top level gains a required `surprises` array (may be empty):
+`"required": ["generatedAt", "attribution", "models", "events", "surprises"]`,
+`"surprises": { "type": "array", "items": { "$ref": "Surprise" } }`.
+
+### 12.5 Surprise (element of data/surprises.json and of `surprises`)
+
+```json
+{
+  "title": "Surprise",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "modelIds", "field", "note"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "modelIds": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 2,
+      "maxItems": 2,
+      "uniqueItems": true
+    },
+    "field": {
+      "enum": ["pricing.inputPerMTok", "pricing.outputPerMTok",
+               "contextWindow", "benchmarks.gpqaDiamond",
+               "benchmarks.swebenchVerified", "releaseDate"]
+    },
+    "note": { "type": "string", "minLength": 1 }
+  }
+}
+```
+
+### 12.6 Storage (value of localStorage key `frontier.game.v1`)
+
+```json
+{
+  "title": "GameStorageV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "endless", "daily"],
+  "properties": {
+    "version": { "const": 1 },
+    "endless": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["best"],
+      "properties": { "best": { "type": "integer", "minimum": 0 } }
+    },
+    "daily": {
+      "type": "object",
+      "propertyNames": { "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["questionIds", "picks", "correct", "completed"],
+        "properties": {
+          "questionIds": { "type": "array", "items": { "type": "string" } },
+          "picks": { "type": "array", "items": { "enum": [0, 1] } },
+          "correct": { "type": "array", "items": { "type": "boolean" } },
+          "completed": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}
+```
+
+The fresh default state is
+`{ "version": 1, "endless": { "best": 0 }, "daily": {} }`.
+
+## 23. STEP 2 definition of done
+
+All step 1 done items hold as amended, plus:
+
+8. Every criterion C55 through C76 passes its stated Check (C76 sits in
+   section 18 beside the other daily-mode rules).
+9. `npm run build && npm run validate && npm test` exit 0 with the
+   committed surprises.json flowing into the artifact.
+10. Serving docs/ locally: `#/game` renders the picker; a full daily can be
+    played to the results screen; the share string matches C68 exactly for
+    the played record.
+11. `npm run shots` produces exactly 32 PNGs and the four game states are
+    visually inspected per the PLAN.md standing rule.

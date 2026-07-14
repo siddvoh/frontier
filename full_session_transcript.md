@@ -1322,3 +1322,449 @@ file:///Users/siddvoh/.claude/usage-data/report-2026-07-12-202905.html
 
 Want to dig into any section or try one of the suggestions?
 
+== SIDD ==
+the critic passed but the site has real visual problems. run npx playwright install chromium if needed, then npm run shots, and look at all 16 pngs in shots/ carefully. also here is what i saw on my machine: Overlapping pages, overlapping models, terrible animations, terrible colours, color scheme is not followed. I asked you to make premium, I asked for liquid last, nothing is there, absolutely nothing, and this is pretty terrible work. So, can you use maybe play right? Use my local machine if you have to see what is wrong and only after you check every single thing using playwright, using the UI.
+
+then append a new wave to PLAN.md (next unused number) with one slice per real defect, standard slice format, files: scoped to the css/view files each fix touches, same-wave slices file-disjoint as always. add this standing rule to the top of PLAN.md: any slice touching docs/css or a view file must run npm run shots after the change and visually inspect the relevant pngs before flipping its box - layout defects visible in a screenshot mean the slice is not done, even if npm test is green. do not touch the test gate, playwright stays out of npm test.
+
+also check whether dark mode actually works by comparing the light and dark pngs - if theyre identical thats a defect slice too.
+
+dont fix anything in this session, just look, diagnose, and write the wave. show me the wave before committing.
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+I'll look at the current state of the build, then run the screenshot harness and inspect everything before writing the wave.
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+All 16 PNGs produced. Now inspecting each one.
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+Diagnosis done, Wave 5 written to [PLAN.md](PLAN.md), nothing committed. `npm test` still passes and nothing but PLAN.md was modified (the `.playwright-mcp/` dir is browser-session debris; worth adding to .gitignore when you commit).
+
+**What I found**, from all 16 PNGs plus driving the served site in a real browser:
+
+1. **Timeline is effectively empty**: all six 2026 models and both event markers compute to left 97-100% and render at x≈3100px inside a 1014px-wide strip, five dots at the *identical* position. Only "GPT-4" is visible. This is your "overlapping models".
+2. **Page scrolls horizontally on mobile**: the catalog table (731px) has no scroll container, so at 375px the document is 748px wide and the sticky header appears cut off mid-page.
+3. **Model overlay floats over an empty page**: `#/model/:id` replaces the whole app content instead of overlaying the catalog, no scrim, footer showing through at the top. This is your "overlapping pages".
+4. **Compare tray covers content**: hit-testing the fixed tray's center finds a bar-row underneath it; on mobile it sits mid-document over the bars.
+5. **Null values render as run-ons**: "GPT-4—" with the em dash glued to the label in compare rows.
+6. **Controls are UA defaults**: inputs, selects, checkboxes and buttons are unstyled by the token system: your "colours not followed". The glass itself is actually real (header/tray/overlay have blur 12px + translucent surface + the shadow token), but it reads as nothing because everything around it is unstyled.
+7. **Animations**: transitions on button opacity and table-row background cause hover/re-render flicker; scoped down to color/border-color only.
+8. **Scenario form**: nine full-width stacked fields, floating checkbox, and an em dash summary line ("Budget —/mo · task —...") shown before any input exists.
+
+**Dark mode works**: I compared light vs dark PNGs on all four routes and the dark tokens genuinely apply, so per your instruction there is no dark-mode defect slice.
+
+**The wave** (6 file-disjoint slices, each with root-cause bullets and jsdom-checkable acceptance):
+
+- **W5.S1** `docs/css/styles.css`: motion scoping, token-styled controls, and the class contract (`.table-scroll`, `.filter-bar`, `.bar-row`, `.tray-docked`, `.overlay-scrim`, `.timeline-track`), with all W1.S2 token/glass checks kept intact
+- **W5.S2** `views/timeline.js`: keep the C34 mapping but clamp label anchors inside the track and lane-stack colliding dots
+- **W5.S3** `main.js` + `views/model.js`: overlay renders above the live catalog with a scrim (`var(--ink)` + opacity, no new tokens, no C37/C38 changes), formatted parameter/FLOP display
+- **W5.S4** `views/catalog.js`: table scroll containment, nowrap dates, ordered filter bar
+- **W5.S5** `views/compare.js`: 3-column bar rows (no run-ons), collapsed docked tray
+- **W5.S6** `views/scenario.js`: form grid + fieldset, summary line only after a run
+
+Plus the standing rule at the top of PLAN.md: any slice touching `docs/css` or a view file must run `npm run shots` and visually inspect the PNGs before flipping its box; a visible layout defect means not done even with green tests. Playwright stays out of `npm test`.
+
+Review the wave in [PLAN.md](PLAN.md#L100). Two notes for when you approve: the critic previously created `.sidd/APPROVED`, which makes `sidd.sh` exit immediately, so delete that file when you kick off Wave 5; and I'd add `.playwright-mcp/` to .gitignore in the same commit.
+
+== SIDD ==
+<ide_opened_file>The user opened the file /Users/siddvoh/frontier/docs/css/styles.css in the IDE. This may or may not be related to the current task.</ide_opened_file>
+step 2 time. 
+
+read SPEC.md fully first - the base is built and deployed, now we add the game extension. append a new top-level section STEP 2: GAME to SPEC.md, do not modify any step 1 criteria. same rules as before: numbered criteria continuing from C54, every one checkable by command/test/inspection, nothing subjective, no invented data, everything static and free.
+
+what the game is: "higher or lower" for AI models, built entirely on the existing models.json and the scenario engine. two question families. stat questions: show two models, ask which is higher on a named field (either price, context window, gpqa, swebench, or which released first) - only valid when both models have the field non-null and the values actually differ. scenario questions: reuse the engine - generator picks a budget and token volumes such that exactly one of the two shown models qualifies, question is "which one fits the budget", reveal shows both computed costs using the existing C26 formula strings. at least 8 question templates total. every question is a plain object {id, templateId, prompt, optionA, optionB, correctIndex, revealData} and must be reproducible from (seed, models.json) - same seed same models means identical question, thats a test.
+
+modes: endless mode with a running streak and best streak. daily mode: seed is derived from the utc date string YYYY-MM-DD through a small seeded prng (mulberry32 or similar, specify it exactly), everyone on earth gets the same 10 questions, no server. one recorded play per day. persistence in localStorage under one key frontier.game.v1, schema specified in the spec, corrupt or missing storage degrades gracefully to a fresh state, never crashes.
+
+sharing: results screen builds the string "Frontier #N X/10" followed by 10 green/red square emoji matching the answers, where N is days since a launch date constant. copy button using the clipboard api with a fallback. no share cards for now, just the string.
+
+ui: a new hash route #/game with a mode picker, question screen (two big tappable cards, obviously tappable on a phone), reveal state showing the real numbers and for scenario questions both cost formulas, streak/score display, daily results screen with the share string. reuses the existing design tokens, glass rules, MISSING constant, all step 1 design criteria apply to the new views. question data comes only from the single existing fetch - no new fetch sites.
+
+surprises: data/surprises.json, hand-written by me like curated.json (same authorship protection as C10), listing model-id pairs plus a field where the intuitive answer is wrong. daily mode must include at least 2 surprise-derived questions when the pool allows. seed the file with 1 real pair you can verify from the committed data (eg an older or cheaper model beating a newer one on some field) and ill expand it.
+
+the word-ban from step 1 non-goals (no game features) obviously lifts for the new code, amend that non-goal line to say step 1 views stay game-free but #/game is the sanctioned home.
+
+testing: same philosophy - question generator, seeding determinism (same date = same 10 question ids, different dates differ), streak logic, storage schema round-trip, share string exact format, all under vitest/jsdom in npm test. playwright shots: add the game routes (mode picker, a question, a reveal, daily results) to scripts/screenshot.js viewports/themes, still outside npm test. and keep the standing rule from the cleanup wave: any slice touching css or views runs npm run shots and eyeballs the pngs before calling itself done.
+
+ask me whatever is genuinely open after reading the existing spec, then write the section.
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+Read the spec state and the Wave 5 situation. Before writing STEP 2, four genuinely open points after checking the game design against the existing criteria and the committed data (which today is only 7 models, several with nulls, so the valid question pool is small: e.g. GPQA has exactly one valid pair right now).
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+All decided. Making the four sanctioned step 1 amendments first, then appending STEP 2, then seeding `data/surprises.json`.
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+Now appending the STEP 2 section after section 14.
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+Two consistency fixes I caught on self-review, then the seed file.
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+STEP 2: GAME is appended to [SPEC.md](SPEC.md), criteria **C55 through C75**, and `npm test` still passes (360 tests, nothing existing broken). The seed [data/surprises.json](data/surprises.json) is written and verified against the committed data: GPT-4 charges $30/MTok input vs Fable 5's $10, so the 2023 model costing 3x the 2026 flagship is the counterintuitive seed pair.
+
+**The four sanctioned step 1 amendments**, each marked "(Amended by STEP 2)" in place: the non-goal line (step 1 views stay game-free, `#/game` is the sanctioned home), done-item 7 (word ban scoped to the five step 1 view modules + engine.js), C43 (glass allowlist grows to six selectors with `#game-cards` and `#game-results`), and C53 + done-item 4 (32 PNGs). Schema 12.4 also gains a required `surprises` array, declared in the STEP 2 intro alongside the amendment list.
+
+**What the section pins down:**
+
+- **PRNG specified verbatim** (C58): `xmur3` string hash seeding `mulberry32`, code included in the spec, daily seed from the UTC `YYYY-MM-DD` string, with a test asserting the first three outputs for a known date against committed constants. `Math.random` stays banned.
+- **Eight templates** (C59): six stat (both prices, context, GPQA, SWE-bench, released-first), two scenario (input-heavy 50/5 and output-heavy 5/50 Mtok, task longdoc, budget = exact unrounded midpoint of the two C23 costs so exactly one model qualifies per C24). Validity always requires non-null and differing values, so questions can never surface an invented number.
+- **Determinism as a test** (C61): `generateDaily(seed, artifact)` deep-equal on repeat, unique by (unordered pair, templateId), same pair allowed on different templates, daily = `min(10, poolSize)` per your small-pool decision, adjacent dates must differ.
+- **Surprises** (C55-C57, C62): same authorship protection as C10, validated against the built artifact (not curated.json, since fields like GPT-4's release date are Epoch-enriched), flowed into the artifact by merge so the single-fetch rule (C13) holds; dailies include ≥2 surprise questions when the pool allows.
+- **Persistence** (C65-C67): one key `frontier.game.v1`, exact schema 12.6, corruption/quota/wrong-version all degrade to the default state without throwing, one recorded daily per UTC date with results-on-revisit.
+- **Share string** (C68-C69): exact format `Frontier #N X/M` + newline + 🟩/🟥 squares, `LAUNCH_DATE = "2026-07-15"` with launch day = #1, clipboard API with textarea/execCommand fallback, both jsdom-tested.
+- **UI** (C70-C74): `#/game` picker, `#/game/daily`, `#/game/endless?seed=`, button cards with a token-based minimum tap height, reveal shows real values and both C26 formulas, all C36-C47 design criteria apply, no new CSS file.
+- **Harness** (C75): four game shot states (picker, seeded question, post-click reveal, results via pre-seeded localStorage), 32 PNGs total, still outside `npm test` and CI; the PLAN.md standing shots-inspection rule carries over.
+
+One note: the spec file is now 782 lines total (~600 excluding the two schema sections). Your original sub-500 limit was a step 1 deliverable constraint and you didn't restate it for step 2; if you want it enforced on the combined file, I can compress.
+
+Next step when you're ready: commit, delete `.sidd/APPROVED`, and run `./sidd.sh plan` so the loop breaks STEP 2 (and pending Wave 5) into slices.
+
+== SIDD ==
+<ide_opened_file>The user opened the file /Users/siddvoh/frontier/data/surprises.json in the IDE. This may or may not be related to the current task.</ide_opened_file>
+one gap: define pre-launch daily behavior. if todayUTC < LAUNCH_DATE, #/game/daily renders a "daily starts <date>" notice instead of a game, no storage writes. add it as a criterion with a jsdom test using a fixed pre-launch date.
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== SIDD ==
+
+
+== CLAUDE ==
+
+
+== CLAUDE ==
+Added as **C76** in section 18, next to the other daily-mode rules, with the definition-of-done range updated to C55-C76. The check keeps the view pure per C29: the current date is an injected input to the daily view rather than a clock read inside it, so the jsdom test just passes "2026-07-10", asserts the notice contains the literal "2026-07-15", that no `#game-cards` renders, and that a storage-module spy records zero writes.
+
+Also noting: your expanded surprises.json (the output-price pair is valid too: $60 vs $50, both non-null) means C62's "at least 2 surprise-derived questions per daily" now binds immediately rather than waiting on more entries.
+
