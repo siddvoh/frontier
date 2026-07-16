@@ -15,37 +15,53 @@ import { fmtText, fmtUsd, fmtInt, fmtScore } from "../util.js";
 
 export const MAX_COMPARE = 3;
 
-// The five C32 bar groups, in render order.
+// The five C32 bar groups, in render order (W11.S4 adds per-metric delta
+// semantics). `digits` is the precision the metric's formatter prints, so
+// delta annotations subtract the values the viewer actually reads (display
+// formatting, never invented data, C19). `betterLower` marks the two price
+// metrics, where the best value is the LOWEST: bars stay proportional to
+// the max per C32, so the group carries a "lower is better" note and the
+// delta phrasing flips to "more" (costlier) instead of "behind".
 const METRICS = [
   {
     key: "input-price",
     label: "Input price ($/MTok)",
     value: (m) => m.pricing.inputPerMTok,
     format: fmtUsd,
+    digits: 2,
+    betterLower: true,
   },
   {
     key: "output-price",
     label: "Output price ($/MTok)",
     value: (m) => m.pricing.outputPerMTok,
     format: fmtUsd,
+    digits: 2,
+    betterLower: true,
   },
   {
     key: "context-window",
     label: "Context window (tokens)",
     value: (m) => m.contextWindow,
     format: fmtInt,
+    digits: 0,
+    betterLower: false,
   },
   {
     key: "gpqa-diamond",
     label: "GPQA Diamond",
     value: (m) => m.benchmarks.gpqaDiamond,
     format: fmtScore,
+    digits: 1,
+    betterLower: false,
   },
   {
     key: "swebench-verified",
     label: "SWE-bench Verified",
     value: (m) => m.benchmarks.swebenchVerified,
     format: fmtScore,
+    digits: 1,
+    betterLower: false,
   },
 ];
 
@@ -69,6 +85,15 @@ export function toggleCompareId(ids, id) {
 // bars because proportionality is undefined there.
 function barWidthPercent(value, max) {
   return max > 0 ? (value / max) * 100 : 0;
+}
+
+// A value as the viewer reads it: rounded to the digits the metric's
+// formatter prints. Deltas subtract these displayed readings, so the
+// annotation always agrees with the printed values (near-ties like 93.2 vs
+// 92.9 whose bars look identical still get an honest "0.3 behind"), and two
+// values that print identically produce no delta at all.
+function displayedValue(value, digits) {
+  return Number(value.toFixed(digits));
 }
 
 // The tray docks as a collapsed one-line summary so it never covers the
@@ -110,17 +135,41 @@ function renderTray(models) {
 }
 
 function renderBarGroup(metric, models) {
+  // The group element is the metric card (W11.S4): same node, so
+  // .bar-group[data-metric] stays queryable exactly as before, with the
+  // metric name as the card's heading.
   const group = document.createElement("div");
-  group.className = "bar-group";
+  group.className = "bar-group metric-card";
   group.dataset.metric = metric.key;
 
   const heading = document.createElement("h3");
   heading.textContent = metric.label;
   group.append(heading);
 
+  if (metric.betterLower) {
+    const note = document.createElement("p");
+    note.className = "better-lower";
+    note.textContent = "lower is better";
+    group.append(note);
+  }
+
   const values = models.map(metric.value);
   const nonNull = values.filter((v) => v !== null);
   const max = nonNull.length > 0 ? Math.max(...nonNull) : null;
+
+  // Leading row(s) per group: the best DISPLAYED value, lowest for the two
+  // price metrics and highest otherwise. Every non-leading, non-null row
+  // gets a .delta annotation against that best displayed value.
+  const shown = values.map((v) =>
+    v === null ? null : displayedValue(v, metric.digits)
+  );
+  const shownNonNull = shown.filter((v) => v !== null);
+  const best =
+    shownNonNull.length > 0
+      ? metric.betterLower
+        ? Math.min(...shownNonNull)
+        : Math.max(...shownNonNull)
+      : null;
 
   models.forEach((model, i) => {
     const value = values[i];
@@ -153,6 +202,18 @@ function renderBarGroup(metric, models) {
     const valueEl = document.createElement("span");
     valueEl.className = "bar-value";
     valueEl.textContent = metric.format(value);
+
+    // Delta annotation nested INSIDE the value cell so the W5.S5 3-sibling
+    // row contract holds. Null rows never carry one, and rows whose
+    // displayed value equals the best are leaders (no delta).
+    if (value !== null && best !== null && shown[i] !== best) {
+      const gap = metric.betterLower ? shown[i] - best : best - shown[i];
+      const delta = document.createElement("span");
+      delta.className = "delta";
+      delta.textContent =
+        metric.format(gap) + (metric.betterLower ? " more" : " behind");
+      valueEl.append(" ", delta);
+    }
 
     row.append(label, barCell, valueEl);
 

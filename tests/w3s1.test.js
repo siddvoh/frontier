@@ -125,15 +125,41 @@ function input(control) {
   control.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
 }
 
+function toggleChip(el, org, checked) {
+  const box = [...el.querySelectorAll(".chip-set .chip input")].find(
+    (b) => b.value === org
+  );
+  box.checked = checked;
+  change(box);
+}
+
+// W11.S2 row contract: organization renders as a muted second line inside
+// the name cell instead of its own column, so a row is 8 cells: name (link
+// plus muted org subline), released, both prices, context window, both
+// benchmarks, weights.
+function rowContract(el, id) {
+  const row = el.querySelector(`tr[data-model-id="${id}"]`);
+  const cells = [...row.querySelectorAll("td")];
+  expect(cells).toHaveLength(8);
+  const nameLink = cells[0].querySelector("a");
+  const orgLine = cells[0].querySelector(".muted");
+  expect(nameLink).not.toBeNull();
+  expect(orgLine).not.toBeNull();
+  return {
+    name: nameLink.textContent,
+    organization: orgLine.textContent,
+    rest: cells.slice(1).map((td) => td.textContent),
+  };
+}
+
 describe("catalog rows (C30, C20)", () => {
   it("renders one row per model with every C30 field", () => {
     const el = renderFixtureCatalog();
     expect(el.querySelectorAll("tbody tr")).toHaveLength(MODELS.length);
-    const row = el.querySelector('tr[data-model-id="alpha-1"]');
-    const cells = [...row.querySelectorAll("td")].map((td) => td.textContent);
-    expect(cells).toEqual([
-      "Alpha 1",
-      "Alpha Lab",
+    const row = rowContract(el, "alpha-1");
+    expect(row.name).toBe("Alpha 1");
+    expect(row.organization).toBe("Alpha Lab");
+    expect(row.rest).toEqual([
       "2023-03-02",
       "$3.00",
       "$15.00",
@@ -152,12 +178,10 @@ describe("catalog rows (C30, C20)", () => {
 
   it("keeps all-null models in the catalog, rendered as MISSING", () => {
     const el = renderFixtureCatalog();
-    const row = el.querySelector('tr[data-model-id="beta-2"]');
-    expect(row).not.toBeNull();
-    const cells = [...row.querySelectorAll("td")].map((td) => td.textContent);
-    expect(cells).toEqual([
-      "Beta 2",
-      "Beta Corp",
+    const row = rowContract(el, "beta-2");
+    expect(row.name).toBe("Beta 2");
+    expect(row.organization).toBe("Beta Corp");
+    expect(row.rest).toEqual([
       MISSING,
       MISSING,
       MISSING,
@@ -170,15 +194,12 @@ describe("catalog rows (C30, C20)", () => {
 });
 
 describe("catalog filters (C30)", () => {
-  it("filters by organization multi-select", () => {
+  it("filters by the organization multi-select chips", () => {
     const el = renderFixtureCatalog();
-    const select = el.querySelector("#catalog-filter-org");
-    [...select.options].find((o) => o.value === "Alpha Lab").selected = true;
-    change(select);
+    toggleChip(el, "Alpha Lab", true);
     expect(rowIds(el).sort()).toEqual(["alpha-1", "gamma-3"]);
 
-    [...select.options].find((o) => o.value === "Beta Corp").selected = true;
-    change(select);
+    toggleChip(el, "Beta Corp", true);
     expect(rowIds(el).sort()).toEqual(["alpha-1", "beta-2", "gamma-3"]);
   });
 

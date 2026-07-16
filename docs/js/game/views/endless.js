@@ -6,29 +6,18 @@
 // parsed it to a number) and by Date.now() at session start otherwise, so
 // a seeded run replays the exact same sequence (C63). The running streak
 // is view state; the best streak flows only through the storage module
-// and never touches browser storage directly (C64, C65). Markup follows
+// and never touches browser storage directly (C64, C65). The C60 reveal
+// content comes from the shared reveal module (W10.S2) so daily and
+// endless always agree on labels and value formatting. Markup follows
 // the W7.S2 class
 // contract: two <button> cards inside #game-cards.glass (amended C43),
 // .game-progress for the streak line, .game-reveal for the C60 values,
 // .game-next for the next-question control.
 
-import { fmtDate, fmtInt, fmtScore, fmtUsd } from "../../util.js";
 import { endlessQuestions } from "../questions.js";
+import { STAT_REVEAL, revealParagraphs } from "../reveal.js";
 import { getBestStreak, recordCorrect, recordWrong } from "../storage.js";
-
-// Reveal label and formatter per stat revealData field (C60); values are
-// formatted here, in the view, never in the generator.
-const STAT_REVEAL = Object.freeze({
-  "pricing.inputPerMTok": { label: "Input price per Mtok", format: fmtUsd },
-  "pricing.outputPerMTok": { label: "Output price per Mtok", format: fmtUsd },
-  contextWindow: { label: "Context window", format: fmtInt },
-  "benchmarks.gpqaDiamond": { label: "GPQA Diamond", format: fmtScore },
-  "benchmarks.swebenchVerified": {
-    label: "SWE-bench Verified",
-    format: fmtScore,
-  },
-  releaseDate: { label: "Release date", format: fmtDate },
-});
+import { fmtUsd } from "../../util.js";
 
 function el(tag, props = {}, children = []) {
   const node = document.createElement(tag);
@@ -37,24 +26,19 @@ function el(tag, props = {}, children = []) {
   return node;
 }
 
-// The C60 reveal lines for a question, one string per <p>. Stat templates
-// show the compared field with both values; scenario templates show the
-// budget plus both engine formula strings verbatim (C71).
-function revealLines(question, name) {
+/**
+ * The honest per-card values revealed inline after an answer (W11.S3):
+ * the real C60 stat values through the shared reveal formatters, or the
+ * two computed C23 costs for scenario templates. Read from revealData
+ * only; nothing is ever invented or defaulted (C19).
+ */
+function cardValues(question) {
   const data = question.revealData;
   if (data.field !== undefined) {
-    const { label, format } = STAT_REVEAL[data.field];
-    return [
-      `${label}: ${name(question.optionA)} ${format(data.valueA)} vs ` +
-        `${name(question.optionB)} ${format(data.valueB)}`,
-    ];
+    const { format } = STAT_REVEAL[data.field];
+    return [format(data.valueA), format(data.valueB)];
   }
-  return [
-    `Budget: ${fmtUsd(data.budget)} for ${data.inputMTok} Mtok in / ` +
-      `${data.outputMTok} Mtok out per month`,
-    `${name(question.optionA)}: ${data.formulaA}`,
-    `${name(question.optionB)}: ${data.formulaB}`,
-  ];
+  return [fmtUsd(data.costA), fmtUsd(data.costB)];
 }
 
 export function render(state) {
@@ -94,15 +78,40 @@ export function render(state) {
   const outcome = el("div", {});
   section.append(heading, progress, prompt, cards, outcome);
 
+  // The streak is what an endless run is playing for, so the count is the
+  // figure and the best sits quiet beside it. The celebration fires only
+  // once the run passes the best the player walked in with: the storage
+  // module has already persisted the new best by then, so comparing
+  // against the live best would congratulate every first correct answer.
+  const bestAtStart = getBestStreak();
+
   function showProgress() {
-    progress.textContent = `Streak ${streak} · Best ${getBestStreak()}`;
+    // You can only beat a best you had: a first-ever run passing 0 is not
+    // a comeback, so it reads as a plain streak until there is a bar.
+    const beatenBest = bestAtStart > 0 && streak > bestAtStart;
+    const count = el("span", {
+      className: beatenBest ? "game-streak streak-best" : "game-streak",
+      textContent: String(streak),
+    });
+    const label = el("span", {
+      className: "game-streak-label",
+      textContent: beatenBest
+        ? "New best streak"
+        : `Streak · Best ${getBestStreak()}`,
+    });
+    progress.replaceChildren(count, label);
   }
 
   function showQuestion() {
     prompt.textContent = question.prompt;
     options[0].textContent = name(question.optionA);
     options[1].textContent = name(question.optionB);
-    for (const button of options) button.disabled = false;
+    for (const button of options) {
+      button.disabled = false;
+      // Setting textContent above dropped the in-card value spans; the
+      // answer-state classes reset here so a fresh question starts clean.
+      button.classList.remove("card-correct", "card-picked", "card-wrong");
+    }
     outcome.replaceChildren();
     showProgress();
   }
@@ -113,17 +122,29 @@ export function render(state) {
     // A wrong answer resets the run to 0 and play continues; a correct one
     // increments, and the storage module persists any new best (C64).
     streak = correct ? recordCorrect(streak) : recordWrong();
-    for (const button of options) button.disabled = true;
+    // Honest answer states: the correct card carries the success state, a
+    // wrong pick the danger state (STEP 3), the chosen card the pressed
+    // state, and both cards reveal their real value inline where the eye
+    // already is.
+    const values = cardValues(question);
+    options.forEach((button, i) => {
+      button.disabled = true;
+      button.append(
+        el("span", { className: "card-value", textContent: values[i] })
+      );
+    });
+    options[index].classList.add("card-picked");
+    if (!correct) options[index].classList.add("card-wrong");
+    options[question.correctIndex].classList.add("card-correct");
     const winner = question.correctIndex === 0
       ? question.optionA
       : question.optionB;
     const reveal = el("div", { className: "game-reveal" }, [
       el("p", {
+        className: `game-verdict ${correct ? "verdict-correct" : "verdict-wrong"}`,
         textContent: correct ? "Correct." : `Not quite: ${name(winner)}.`,
       }),
-      ...revealLines(question, name).map((text) =>
-        el("p", { textContent: text })
-      ),
+      ...revealParagraphs(question, name),
     ]);
     const next = el("button", {
       className: "game-next",

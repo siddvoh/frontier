@@ -87,13 +87,25 @@ describe("motion scoping", () => {
     expect(transitions.length).toBeGreaterThan(0);
   });
 
-  it("every transition animates only color or border-color", () => {
+  it("every transition animates only color, border-color, or the card press", () => {
+    // W13.S1 narrows this pin rather than dropping it: transform is the
+    // deliberate press-in on an answered game card, and it is allowed
+    // there only. Everything else still animates color/border-color, so
+    // the flicker this rule was written against cannot come back.
     for (const value of transitions) {
       for (const part of value.split(",")) {
         const prop = part.trim().split(/\s+/)[0];
-        expect(["color", "border-color"], value).toContain(prop);
+        expect(["color", "border-color", "transform"], value).toContain(prop);
       }
     }
+  });
+
+  it("transform transitions exist only on the game answer cards", () => {
+    const rules = [...styles.matchAll(/([^{}]*)\{([^{}]*)\}/g)];
+    const movers = rules
+      .filter(([, , body]) => /transition\s*:[^;]*\btransform\b/.test(body))
+      .map(([, selector]) => selector.trim());
+    expect(movers).toEqual(["#game-cards button"]);
   });
 
   it("no transition targets opacity, background, or all", () => {
@@ -306,8 +318,11 @@ describe("W1.S2 invariants stay intact", () => {
     }
   });
 
-  it("still exactly one box-shadow and one backdrop-filter declaration", () => {
-    expect(styles.match(/box-shadow/g)).toHaveLength(1);
+  it("box-shadow is the two token references, backdrop-filter unchanged", () => {
+    // Amended C45: the glass shadow plus the one --shadow-raised rule.
+    expect(styles.match(/box-shadow/g)).toHaveLength(2);
+    expect(styles.match(/box-shadow\s*:\s*var\(--shadow-glass\)\s*;/g)).toHaveLength(1);
+    expect(styles.match(/box-shadow\s*:\s*var\(--shadow-raised\)\s*;/g)).toHaveLength(1);
     // One @supports condition plus one declaration inside it.
     expect(styles.match(/backdrop-filter/g)).toHaveLength(2);
     expect(styles).not.toContain("gradient(");

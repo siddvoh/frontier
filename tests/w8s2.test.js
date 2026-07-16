@@ -21,9 +21,22 @@ import * as storage from "../docs/js/game/storage.js";
 import { render } from "../docs/js/game/views/daily.js";
 import { dailySeed, generateDaily } from "../docs/js/game/questions.js";
 import { buildShareString } from "../docs/js/game/share.js";
+import { fmtDate, fmtInt, fmtScore, fmtUsd } from "../docs/js/util.js";
 
 const GREEN = "\u{1F7E9}";
 const RED = "\u{1F7E5}";
+
+// Expected human label and display formatter per stat revealData field
+// (W10.S2 rescope of the stub-era assertions: the reveal must show these,
+// never the raw artifact dot-path or raw String(value)).
+const STAT_EXPECT = {
+  "pricing.inputPerMTok": ["Input price per Mtok", fmtUsd],
+  "pricing.outputPerMTok": ["Output price per Mtok", fmtUsd],
+  contextWindow: ["Context window", fmtInt],
+  "benchmarks.gpqaDiamond": ["GPQA Diamond", fmtScore],
+  "benchmarks.swebenchVerified": ["SWE-bench Verified", fmtScore],
+  releaseDate: ["Release date", fmtDate],
+};
 
 function model(overrides) {
   return {
@@ -230,16 +243,20 @@ describe("daily question screen (C61, C71)", () => {
         i % 2 === 0 ? question.correctIndex : 1 - question.correctIndex;
       cardButtons(el)[pick].click();
 
-      // Reveal shows the real C60 values for the template (C71).
+      // Reveal shows the real C60 values for the template (C71): the human
+      // field label with display-formatted values, never the raw artifact
+      // dot-path (W10.S2).
       const reveal = el.querySelector(".game-reveal");
       expect(reveal).not.toBeNull();
       const text = reveal.textContent;
       const data = question.revealData;
       if (data.field !== undefined) {
         sawStat = true;
-        expect(text).toContain(data.field);
-        expect(text).toContain(String(data.valueA));
-        expect(text).toContain(String(data.valueB));
+        const [label, format] = STAT_EXPECT[data.field];
+        expect(text).toContain(label);
+        expect(text).toContain(format(data.valueA));
+        expect(text).toContain(format(data.valueB));
+        expect(text).not.toContain(data.field);
       } else {
         sawScenario = true;
         // Both C26 formula strings verbatim (C60, C71).
@@ -325,15 +342,29 @@ describe("completed record renders results, not a replay (C67, C68, C72)", () =>
 
     expect(results.querySelector(".game-score").textContent).toContain("3/5");
 
+    // STEP 3: the on-screen squares are token-colored elements carrying
+    // data-correct, not emoji glyphs. Same per-question order, now also
+    // asserting each square is labeled and renders no glyph text.
     const squares = [...results.querySelectorAll(".game-squares span")];
-    expect(squares.map((s) => s.textContent)).toEqual([
-      GREEN,
-      GREEN,
-      RED,
-      GREEN,
-      RED,
+    expect(squares.map((s) => s.dataset.correct)).toEqual([
+      "true",
+      "true",
+      "false",
+      "true",
+      "false",
     ]);
+    expect(squares.map((s) => s.getAttribute("aria-label"))).toEqual([
+      "correct",
+      "correct",
+      "wrong",
+      "correct",
+      "wrong",
+    ]);
+    for (const square of squares) {
+      expect(square.textContent).toBe("");
+    }
 
+    // The share string keeps its exact emoji squares (C68 unchanged).
     const expected = `Frontier #18 3/5\n${GREEN}${GREEN}${RED}${GREEN}${RED}`;
     expect(buildShareString(completedRecord, RESULT_DATE)).toBe(expected);
     expect(results.querySelector(".game-share").textContent).toBe(expected);

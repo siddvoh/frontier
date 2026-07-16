@@ -8,12 +8,35 @@
 // complete the view renders the results screen instead of a replay (C67).
 
 import { dailySeed, generateDaily } from "../questions.js";
-import { getDailyRecord, saveDailyRecord } from "../storage.js";
-import { LAUNCH_DATE, buildShareString, copyShareString } from "../share.js";
-import { fmtText, fmtUsd } from "../../util.js";
+import { STAT_REVEAL, revealParagraphs } from "../reveal.js";
+import { getBestStreak, getDailyRecord, saveDailyRecord } from "../storage.js";
+import {
+  LAUNCH_DATE,
+  buildShareString,
+  copyShareString,
+  dayNumber,
+} from "../share.js";
+import { fmtUsd } from "../../util.js";
 
 function currentUtcDate() {
   return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Whole hours and minutes until the next UTC midnight, when the daily
+ * rolls over. Read once at render from the injected clock: the results
+ * screen states the wait, it does not tick (no timers, no re-render).
+ */
+function timeToNextDaily(now) {
+  const nextUtcMidnight = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate() + 1
+  );
+  const remainingMs = nextUtcMidnight - now.getTime();
+  const hours = Math.floor(remainingMs / 3600000);
+  const minutes = Math.floor((remainingMs % 3600000) / 60000);
+  return `${hours}h ${minutes}m`;
 }
 
 function el(tag, props = {}, children = []) {
@@ -32,37 +55,39 @@ function sameIds(a, b) {
   return a.length === b.length && a.every((id, i) => id === b[i]);
 }
 
-/** The reveal panel for an answered question, real C60 values only. */
-function revealPanel(question, models, wasCorrect) {
-  const nameA = modelName(models, question.optionA);
-  const nameB = modelName(models, question.optionB);
-  const reveal = question.revealData;
-  const verdict = el("p", {
-    className: "game-verdict",
-    textContent: wasCorrect ? "Correct!" : "Not quite.",
-  });
-  const lines =
-    reveal.field !== undefined
-      ? [
-          el("p", { textContent: reveal.field }),
-          el("p", { textContent: `${nameA}: ${fmtText(reveal.valueA)}` }),
-          el("p", { textContent: `${nameB}: ${fmtText(reveal.valueB)}` }),
-        ]
-      : [
-          el("p", { textContent: `Budget: ${fmtUsd(reveal.budget)}/mo` }),
-          el("p", {
-            className: "cost-formula",
-            textContent: `${nameA}: ${reveal.formulaA}`,
-          }),
-          el("p", {
-            className: "cost-formula",
-            textContent: `${nameB}: ${reveal.formulaB}`,
-          }),
-        ];
-  return el("div", { className: "game-reveal" }, [verdict, ...lines]);
+/**
+ * The honest per-card values revealed inline after an answer (W11.S3):
+ * the real C60 stat values through the shared reveal formatters, or the
+ * two computed C23 costs for scenario templates. Read from revealData
+ * only; nothing is ever invented or defaulted (C19).
+ */
+function cardValues(question) {
+  const data = question.revealData;
+  if (data.field !== undefined) {
+    const { format } = STAT_REVEAL[data.field];
+    return [format(data.valueA), format(data.valueB)];
+  }
+  return [fmtUsd(data.costA), fmtUsd(data.costB)];
 }
 
-export function render(state, todayUtc = currentUtcDate()) {
+/**
+ * The reveal panel for an answered question, real C60 values only. Labels,
+ * value formatting, and the verbatim formula lines come from the shared
+ * reveal module (W10.S2), so daily and endless render the same reveal.
+ */
+function revealPanel(question, models, wasCorrect) {
+  const verdict = el("p", {
+    className: `game-verdict ${wasCorrect ? "verdict-correct" : "verdict-wrong"}`,
+    textContent: wasCorrect ? "Correct!" : "Not quite.",
+  });
+  const name = (id) => modelName(models, id);
+  return el("div", { className: "game-reveal" }, [
+    verdict,
+    ...revealParagraphs(question, name),
+  ]);
+}
+
+export function render(state, todayUtc = currentUtcDate(), now = new Date()) {
   const { models } = state.data;
   const section = el("section", { className: "view-daily" }, [
     el("h2", { textContent: "Daily" }),
@@ -146,9 +171,20 @@ export function render(state, todayUtc = currentUtcDate()) {
     record.completed = record.picks.length === questions.length;
     saveDailyRecord(todayUtc, record);
 
-    for (const button of cards.querySelectorAll("button")) {
+    // Honest answer states (W11.S3): the correct card carries the accent
+    // outline class, the chosen card the pressed-state class, and both
+    // cards reveal their real value inline where the eye already is.
+    const buttons = [...cards.querySelectorAll("button")];
+    const values = cardValues(question);
+    buttons.forEach((button, i) => {
       button.disabled = true;
-    }
+      button.append(
+        el("span", { className: "card-value", textContent: values[i] })
+      );
+    });
+    buttons[question.correctIndex].classList.add("card-correct");
+    card.classList.add("card-picked");
+    if (!wasCorrect) card.classList.add("card-wrong");
     card.dataset.picked = "true";
     const next = el("button", {
       type: "button",
@@ -170,12 +206,17 @@ export function render(state, todayUtc = currentUtcDate()) {
     const total = finished.correct.length;
     const score = finished.correct.filter(Boolean).length;
     const shareText = buildShareString(finished, todayUtc);
+    // On-screen squares are token-colored elements (STEP 3); the emoji
+    // squares remain the share format only, built by share.js (C68).
     const squares = el(
       "div",
       { className: "game-squares" },
-      finished.correct.map((wasCorrect) =>
-        el("span", { textContent: wasCorrect ? "\u{1F7E9}" : "\u{1F7E5}" })
-      )
+      finished.correct.map((wasCorrect) => {
+        const square = el("span", { role: "img" });
+        square.dataset.correct = String(wasCorrect);
+        square.setAttribute("aria-label", wasCorrect ? "correct" : "wrong");
+        return square;
+      })
     );
     const copy = el("button", {
       type: "button",
@@ -188,16 +229,36 @@ export function render(state, todayUtc = currentUtcDate()) {
         copy.dataset.copied = "true";
       }
     });
-    body.replaceChildren(
-      el("div", { id: "game-results", className: "glass" }, [
-        el("p", {
-          className: "game-score",
-          textContent: `You got ${score}/${total} right.`,
-        }),
-        squares,
-        el("pre", { className: "game-share", textContent: shareText }),
-        copy,
-      ])
+    // The day number is the headline: this play belongs to a dated run
+    // everyone else played too. The squares carry the story, the share
+    // string sits quiet beneath them as the copy source (C72).
+    const best = getBestStreak();
+    const results = el("div", { id: "game-results", className: "glass" }, [
+      el("h3", {
+        className: "game-day",
+        textContent: `Frontier #${dayNumber(todayUtc)}`,
+      }),
+      el("p", {
+        className: "game-score",
+        textContent: `You got ${score}/${total} right.`,
+      }),
+      squares,
+    ]);
+    // The streak belongs to endless. It earns a line here only once the
+    // player has one: "Best streak: 0" is noise to a daily-only player.
+    if (best > 0) {
+      results.append(
+        el("p", { className: "game-best muted", textContent: `Best streak: ${best}` })
+      );
+    }
+    results.append(
+      el("p", {
+        className: "game-next-daily muted",
+        textContent: `Next daily in ${timeToNextDaily(now)}.`,
+      }),
+      el("pre", { className: "game-share muted", textContent: shareText }),
+      copy
     );
+    body.replaceChildren(results);
   }
 }

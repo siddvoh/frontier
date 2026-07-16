@@ -85,11 +85,12 @@ describe("table containment (W5.S4)", () => {
   });
 });
 
-describe("cell classes (W5.S4)", () => {
-  // Column order: Name, Organization, Released, Input $/MTok, Output $/MTok,
+describe("cell classes (W5.S4, rescoped by W11.S2)", () => {
+  // Column order since W11.S2 folded organization into the name cell:
+  // Name (link + muted org subline), Released, Input $/MTok, Output $/MTok,
   // Context window, GPQA Diamond, SWE-bench Verified, Weights.
-  const NUM_INDEXES = [3, 4, 5, 6, 7];
-  const DATE_INDEX = 2;
+  const NUM_INDEXES = [2, 3, 4, 5, 6];
+  const DATE_INDEX = 1;
 
   it("marks release-date cells with .nowrap", () => {
     const el = renderFixtureCatalog();
@@ -103,7 +104,7 @@ describe("cell classes (W5.S4)", () => {
     const el = renderFixtureCatalog();
     for (const id of ["alpha-1", "beta-2"]) {
       const cells = [...el.querySelectorAll(`tr[data-model-id="${id}"] td`)];
-      expect(cells).toHaveLength(9);
+      expect(cells).toHaveLength(8);
       cells.forEach((td, index) => {
         expect(td.classList.contains("num"), `${id} col ${index}`).toBe(
           NUM_INDEXES.includes(index)
@@ -131,19 +132,20 @@ describe("cell classes (W5.S4)", () => {
     const cells = [...el.querySelectorAll('tr[data-model-id="alpha-1"] td')];
     expect(cells[0].querySelector("a")).not.toBeNull();
     expect(cells[0].classList.contains("num")).toBe(false);
-    expect(cells[8].classList.contains("num")).toBe(false);
+    expect(cells[7].classList.contains("num")).toBe(false);
   });
 });
 
-describe("filter bar layout (W5.S4)", () => {
-  it("emits .filter-bar controls in order: name, org, open, sort, dir", () => {
+describe("filter bar layout (W5.S4, rescoped by W11.S2)", () => {
+  it("emits .filter-bar controls in order: name, open, sort, dir", () => {
     const el = renderFixtureCatalog();
     const bar = el.querySelector(".filter-bar");
     expect(bar).not.toBeNull();
     const ids = [...bar.querySelectorAll("input, select")].map((c) => c.id);
+    // The organization slot dissolved into the chip set beside the bar
+    // (W11.S2); the surviving W5.S4 order is unchanged.
     expect(ids).toEqual([
       "catalog-filter-name",
-      "catalog-filter-org",
       "catalog-filter-open",
       "catalog-sort-key",
       "catalog-sort-dir",

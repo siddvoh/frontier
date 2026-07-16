@@ -4,6 +4,11 @@
 // toggle, free-text name) and sorts (release date, either price, context
 // window, both benchmarks) with nulls last in both directions. Null stat
 // values render via the shared MISSING constant; nothing is defaulted (C19).
+//
+// W11.S2: the organization filter is a set of labeled checkbox chips
+// (.chip-set / .chip), the only organization control; the checked chip
+// inputs hold the multi-select state. In the table, organization renders as
+// a muted second line under the model name instead of its own column.
 
 import {
   fmtText,
@@ -34,11 +39,13 @@ const SORT_LABELS = {
   swebenchVerified: "SWE-bench Verified",
 };
 
-// Each column: [header, cell formatter, td class]. "nowrap" keeps dates on
-// one line; "num" is the tabular-nums class shipped by the CSS slice.
+// Each column: [header, cell formatter, td class]. "nowrap" keeps names and
+// dates on one line; "num" is the right-aligned tabular-nums class shipped by
+// the CSS slices. The name cell also carries the muted organization subline
+// (built in rowFor); classes apply to every td (including MISSING cells);
+// header th elements carry none of them.
 const COLUMNS = [
-  ["Name", (m) => fmtText(m.name), ""],
-  ["Organization", (m) => fmtText(m.organization), ""],
+  ["Name", (m) => fmtText(m.name), "nowrap"],
   ["Released", (m) => fmtDate(m.releaseDate), "nowrap"],
   ["Input $/MTok", (m) => fmtUsd(m.pricing.inputPerMTok), "num"],
   ["Output $/MTok", (m) => fmtUsd(m.pricing.outputPerMTok), "num"],
@@ -107,18 +114,31 @@ function labeled(text, control) {
   return wrap;
 }
 
-function orgSelect(models) {
-  const select = document.createElement("select");
-  select.id = "catalog-filter-org";
-  select.multiple = true;
+// The organization control (W11.S2): one labeled checkbox chip per distinct
+// organization, sorted. Each chip is a label wrapping its checkbox and text,
+// with an explicit for/id association (C35). The checked chips ARE the
+// multi-select state; there is no backing select element.
+function orgChipSet(models) {
+  const fieldset = document.createElement("fieldset");
+  fieldset.className = "chip-set";
+  const legend = document.createElement("legend");
+  legend.textContent = "Organization";
+  fieldset.append(legend);
   const orgs = [...new Set(models.map((m) => m.organization))].sort();
-  for (const org of orgs) {
-    const option = document.createElement("option");
-    option.value = org;
-    option.textContent = org;
-    select.append(option);
-  }
-  return select;
+  orgs.forEach((org, index) => {
+    const chip = document.createElement("label");
+    chip.className = "chip";
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.id = "catalog-org-" + index;
+    box.value = org;
+    chip.htmlFor = box.id;
+    const text = document.createElement("span");
+    text.textContent = org;
+    chip.append(box, text);
+    fieldset.append(chip);
+  });
+  return fieldset;
 }
 
 function sortSelect(id, entries, selected) {
@@ -137,6 +157,7 @@ function sortSelect(id, entries, selected) {
 function rowFor(model) {
   const row = document.createElement("tr");
   row.dataset.modelId = model.id;
+  const weightsIndex = COLUMNS.length - 1;
   COLUMNS.forEach(([, cell, cellClass], index) => {
     const td = document.createElement("td");
     if (cellClass !== "") td.className = cellClass;
@@ -144,7 +165,19 @@ function rowFor(model) {
       const link = document.createElement("a");
       link.href = "#/model/" + encodeURIComponent(model.id);
       link.textContent = model.name;
-      td.append(link);
+      // Organization reads as the quiet second line under the name (W11.S2);
+      // a block element makes the line, the muted class makes it quiet.
+      const org = document.createElement("div");
+      org.className = "muted";
+      org.textContent = fmtText(model.organization);
+      td.append(link, org);
+    } else if (index === weightsIndex && model.openWeights !== null) {
+      // Weights renders as a badge (W11.S2); a null flag falls through to
+      // the plain MISSING text so no empty badge pill ever renders (C20).
+      const badge = document.createElement("span");
+      badge.className = "badge";
+      badge.textContent = cell(model);
+      td.append(badge);
     } else {
       td.textContent = cell(model);
     }
@@ -175,7 +208,6 @@ export function render(state) {
 
   section.append(renderTimeline({ models, events, generatedAt }));
 
-  const org = orgSelect(models);
   const open = document.createElement("input");
   open.type = "checkbox";
   open.id = "catalog-filter-open";
@@ -196,18 +228,23 @@ export function render(state) {
     "desc"
   );
 
-  // Deliberate control order (W5.S4): search, organization, open-weights,
-  // sort key, direction. catalog-controls stays for the update listeners.
+  // Deliberate control order (W5.S4, minus the dissolved organization slot):
+  // search, open-weights, sort key, direction. catalog-controls stays for
+  // the update listeners; the organization chips sit right after the bar.
   const controls = document.createElement("div");
   controls.className = "catalog-controls filter-bar";
   controls.append(
     labeled("Filter by name", name),
-    labeled("Organization", org),
     labeled("Open weights only", open),
     labeled("Sort by", sortKey),
     labeled("Direction", sortDir)
   );
   section.append(controls);
+
+  // Chip inputs live outside the .filter-bar (its control list is pinned)
+  // as the bar's immediate sibling.
+  const chips = orgChipSet(models);
+  section.append(chips);
 
   const table = document.createElement("table");
   const thead = document.createElement("thead");
@@ -231,7 +268,9 @@ export function render(state) {
 
   function update() {
     const filtered = filterModels(models, {
-      organizations: [...org.selectedOptions].map((o) => o.value),
+      organizations: [...chips.querySelectorAll("input")]
+        .filter((box) => box.checked)
+        .map((box) => box.value),
       openWeightsOnly: open.checked,
       nameQuery: name.value,
     });
@@ -241,8 +280,10 @@ export function render(state) {
     );
   }
 
-  controls.addEventListener("input", update);
-  controls.addEventListener("change", update);
+  for (const host of [controls, chips]) {
+    host.addEventListener("input", update);
+    host.addEventListener("change", update);
+  }
   update();
 
   return section;

@@ -11,6 +11,10 @@
   --hairline: #E5E2DC;
   --accent: #B45309;
   --shadow-glass: 0 4px 24px rgba(0, 0, 0, 0.08);
+  --success: #15803D;
+  --danger: #B91C1C;
+  --accent-soft: rgba(180, 83, 9, 0.12);
+  --shadow-raised: 0 12px 40px rgba(0, 0, 0, 0.14);
 
   /* Type (C40) */
   --font-display: Charter, Georgia, serif;
@@ -38,8 +42,9 @@
   --r-s: 6px;
   --r-m: 12px;
 
-  /* Motion and effects (C44, C46) */
+  /* Motion and effects (C44, C46 as amended by STEP 3) */
   --dur: 150ms;
+  --dur-slow: 300ms;
   --blur: 12px;
 }
 
@@ -54,5 +59,9 @@
     --hairline: #2E2B26;
     --accent: #E8A33D;
     --shadow-glass: 0 4px 24px rgba(0, 0, 0, 0.40);
+    --success: #4ADE80;
+    --danger: #F87171;
+    --accent-soft: rgba(232, 163, 61, 0.16);
+    --shadow-raised: 0 12px 40px rgba(0, 0, 0, 0.55);
   }
 }

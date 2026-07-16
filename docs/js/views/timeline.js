@@ -11,6 +11,17 @@
 //   to stay inside the track; "start" labels extend rightward as before.
 // - data-lane="0|1|2..." on dots: deterministic stacked lanes so labels of
 //   dots within COLLISION_PERCENT of each other never overlap.
+//
+// W10.S4 first-paint contract (consumed by the W10.S1 CSS slice):
+// - .timeline-tick year labels inside the track, one per year from the
+//   TIMELINE_START year through the generatedAt year, inline left only
+//   (position and typography come from the stylesheet); the start-year
+//   tick clamps to the left edge, a tick past 100 percent is omitted.
+// - data-lanes="N" on the track: the deepest occupied dot lane, so the
+//   stylesheet can reserve vertical room for stacked labels.
+// - data-scroll-target="P" on the strip: the percent of the newest dot;
+//   after render the strip's scrollLeft is set proportionally so first
+//   paint shows the newest dot cluster instead of an empty left edge.
 
 import { fmtDate } from "../util.js";
 
@@ -67,6 +78,31 @@ export function assignLanes(percents) {
   return lanes;
 }
 
+/**
+ * Year tick elements for the track: one label per year from the
+ * TIMELINE_START year through the generatedAt year, positioned at the
+ * C34 percent of that year's January 1. The start year computes negative
+ * (January 1 precedes TIMELINE_START) and clamps to the left edge; any
+ * tick past 100 percent is omitted.
+ * @param {string} generatedAt ISO date-time from the artifact top level
+ * @returns {HTMLElement[]}
+ */
+function yearTicks(generatedAt) {
+  const startYear = Number(TIMELINE_START.slice(0, 4));
+  const endYear = new Date(generatedAt).getUTCFullYear();
+  const ticks = [];
+  for (let year = startYear; year <= endYear; year += 1) {
+    const raw = leftPercent(year + "-01-01", generatedAt);
+    if (raw > 100) continue;
+    const tick = document.createElement("span");
+    tick.className = "timeline-tick";
+    tick.textContent = String(year);
+    tick.style.left = Math.max(0, raw) + "%";
+    ticks.push(tick);
+  }
+  return ticks;
+}
+
 function placeAt(el, percent) {
   el.style.position = "absolute";
   el.style.left = percent + "%";
@@ -113,6 +149,25 @@ function eventMarker(event, generatedAt) {
 }
 
 /**
+ * Queue the first-paint scroll: once the caller has attached the strip
+ * and layout exists, scrollLeft lands at targetPercent of the scrollable
+ * range so the newest dot cluster is in view. The intent is recorded on
+ * the strip as data-scroll-target; environments without layout (both
+ * scroll extents zero) are a no-op.
+ * @param {HTMLElement} strip
+ * @param {number} targetPercent 0..100
+ */
+function scheduleInitialScroll(strip, targetPercent) {
+  strip.setAttribute("data-scroll-target", String(targetPercent));
+  queueMicrotask(() => {
+    const range = strip.scrollWidth - strip.clientWidth;
+    if (range > 0) {
+      strip.scrollLeft = (targetPercent / 100) * range;
+    }
+  });
+}
+
+/**
  * Render the horizontally scrollable timeline strip.
  * @param {{models: Array, events: Array, generatedAt: string}} props
  * @returns {HTMLElement}
@@ -128,12 +183,21 @@ export function render({ models, events, generatedAt }) {
   track.style.width = "300%";
   track.style.height = "var(--sp-8)";
 
+  for (const tick of yearTicks(generatedAt)) {
+    track.append(tick);
+  }
+
   const dated = models.filter((m) => m.releaseDate !== null);
   const percents = dated.map((m) => leftPercent(m.releaseDate, generatedAt));
   const lanes = assignLanes(percents);
   dated.forEach((model, index) => {
     track.append(modelDot(model, percents[index], lanes[index]));
   });
+
+  // Deepest occupied lane, so the stylesheet can size the track tall
+  // enough that every stacked label stays inside the strip's box.
+  const deepestLane = lanes.reduce((max, lane) => Math.max(max, lane), 0);
+  track.setAttribute("data-lanes", String(deepestLane));
 
   const details = [];
   for (const event of events) {
@@ -143,5 +207,11 @@ export function render({ models, events, generatedAt }) {
   }
 
   strip.append(track, ...details);
+
+  const newestPercent = percents.reduce(
+    (max, percent) => Math.max(max, percent),
+    0
+  );
+  scheduleInitialScroll(strip, Math.min(100, newestPercent));
   return strip;
 }

@@ -240,29 +240,41 @@ All values below are exact contract values in `docs/css/tokens.css`.
   uses `var()` references.
   Check: grep `docs/css/styles.css`, `docs/js/`, and `docs/index.html` for
   `#[0-9a-fA-F]{3,8}` color literals and `rgb` finds nothing.
-- C37. Themes: `:root` defines the light set; a single
+- C37. (Amended by STEP 3.) Themes: `:root` defines the light set; a single
   `@media (prefers-color-scheme: dark)` block redefines the same names.
   Light: `--bg: #FAF9F7; --surface-glass: rgba(255, 255, 255, 0.62);
   --surface-solid: #FFFFFF; --ink: #1A1815; --muted: #6B675F;
   --hairline: #E5E2DC; --accent: #B45309;
-  --shadow-glass: 0 4px 24px rgba(0, 0, 0, 0.08);`
+  --shadow-glass: 0 4px 24px rgba(0, 0, 0, 0.08);
+  --success: #15803D; --danger: #B91C1C;
+  --accent-soft: rgba(180, 83, 9, 0.12);
+  --shadow-raised: 0 12px 40px rgba(0, 0, 0, 0.14);`
   Dark: `--bg: #141310; --surface-glass: rgba(32, 30, 26, 0.62);
   --surface-solid: #201E1A; --ink: #ECEAE4; --muted: #98948A;
   --hairline: #2E2B26; --accent: #E8A33D;
-  --shadow-glass: 0 4px 24px rgba(0, 0, 0, 0.40);`
+  --shadow-glass: 0 4px 24px rgba(0, 0, 0, 0.40);
+  --success: #4ADE80; --danger: #F87171;
+  --accent-soft: rgba(232, 163, 61, 0.16);
+  --shadow-raised: 0 12px 40px rgba(0, 0, 0, 0.55);`
+  `--success` and `--danger` state correctness; `--accent-soft` fills a
+  selected or stated surface; `--shadow-raised` is the second elevation.
   Check: grep tokens.css for these exact declarations.
-- C38. Theme parity: the eight C37 names (`--bg`, `--surface-glass`,
-  `--surface-solid`, `--ink`, `--muted`, `--hairline`, `--accent`,
-  `--shadow-glass`) are the theme set. A test parses tokens.css and asserts
+- C38. (Amended by STEP 3.) Theme parity: the twelve C37 names (`--bg`,
+  `--surface-glass`, `--surface-solid`, `--ink`, `--muted`, `--hairline`,
+  `--accent`, `--shadow-glass`, `--success`, `--danger`, `--accent-soft`,
+  `--shadow-raised`) are the theme set. A test parses tokens.css and asserts
   the dark block declares exactly the theme set and the `:root` block
   declares all of it, so a color token can never ship in one theme only.
-  Theme-independent tokens (fonts, sizes, spacing, radii, `--dur`, `--blur`)
-  are declared once in `:root` and never in the dark block.
+  Theme-independent tokens (fonts, sizes, spacing, radii, `--dur`,
+  `--dur-slow`, `--blur`) are declared once in `:root` and never in the dark
+  block.
   Check: test.
-- C39. Contrast, worst case: `--ink`, `--muted`, and `--accent` each reach a
-  contrast ratio >= 4.5:1 against `--surface-solid` and against `--bg`, in
-  both themes. A test computes WCAG relative-luminance ratios from the
-  parsed token values.
+- C39. (Amended by STEP 3.) Contrast, worst case: `--ink`, `--muted`,
+  `--accent`, `--success`, and `--danger` each reach a contrast ratio
+  >= 4.5:1 against `--surface-solid` and against `--bg`, in both themes. A
+  test computes WCAG relative-luminance ratios from the parsed token values.
+  `--surface-glass`, `--accent-soft`, and `--shadow-raised` are fill and
+  effect tokens, outside this rule.
   Check: test.
 - C40. Type: `--font-display: Charter, Georgia, serif;`
   `--font-text: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;`
@@ -298,14 +310,23 @@ All values below are exact contract values in `docs/css/tokens.css`.
   text on glass against the solid worst case.
   Check: grep: `backdrop-filter` occurs in styles.css only inside that one
   `@supports` block (plus its condition), nowhere else in docs/.
-- C45. Shadow: `box-shadow` appears in `docs/` exactly as (a) the two
-  `--shadow-glass` token definitions in tokens.css and (b) one declaration
-  `box-shadow: var(--shadow-glass);` inside the `.glass` rule in styles.css.
-  Nowhere else.
+- C45. (Amended by STEP 3.) Shadow: `box-shadow` appears in `docs/` exactly
+  as (a) the four token definitions in tokens.css (two `--shadow-glass`, two
+  `--shadow-raised`), (b) one declaration `box-shadow: var(--shadow-glass);`
+  inside the `.glass` rule in styles.css, and (c) one declaration
+  `box-shadow: var(--shadow-raised);` in styles.css whose selector list names
+  the raised surfaces: the model card overlay and the correct-answer game
+  card. Nowhere else. Two elevations, two rules; a component that needs a
+  third is a spec question, not a stylesheet edit.
   Check: grep counts.
-- C46. Motion: exactly one duration token `--dur: 150ms`, easing `ease-out`;
-  all transition/animation durations reference `var(--dur)`. One
-  `@media (prefers-reduced-motion: reduce)` block sets `--dur: 0ms`.
+- C46. (Amended by STEP 3.) Motion: exactly two duration tokens,
+  `--dur: 150ms` for state changes and `--dur-slow: 300ms` for reveals,
+  easing `ease-out`; every transition and animation duration references
+  `var(--dur)` or `var(--dur-slow)`. At most one `@keyframes` rule exists in
+  `docs/css/`, named `reveal-in`, used only by the game reveal and card-state
+  rules. One `@media (prefers-reduced-motion: reduce)` block sets both
+  durations to `0ms`, which collapses every transition and the keyframe to an
+  instant state.
   Check: grep styles.css.
 - C47. Responsive: mobile-first base styles plus exactly one width
   breakpoint; every width media query in `docs/css/` is
@@ -796,3 +817,43 @@ All step 1 done items hold as amended, plus:
     the played record.
 11. `npm run shots` produces exactly 32 PNGs and the four game states are
     visually inspected per the PLAN.md standing rule.
+
+# STEP 3: DESIGN SYSTEM
+
+STEP 1 fixed a token set with no state colors, one elevation, and one
+duration. That was the right floor to build on, and the game found its
+ceiling: with nothing but `--accent` and opacity to work with, a right
+answer and a wrong one can only be told apart by emoji glyphs and dimming,
+neither of which is a design decision. STEP 3 raises the ceiling.
+
+It is deliberately additive. No committed token value changes, the palette
+does not move, no markup contract changes, and no view is redesigned by
+this step alone: it adds four theme tokens, one duration, one keyframe, and
+the rules that let a state be stated in color. Everything the earlier steps
+promised still holds; C32's proportional bars, C53's 32 shots, and C68's
+share string are all untouched on purpose, since near-tie readability is a
+comparison problem and the share string is a portability contract, neither
+of which a color token should be asked to solve.
+
+The amended lines are the five marked "(Amended by STEP 3.)": C37 and C38
+carry the token set, C39 extends the contrast guarantee over the two new
+text colors, C45 admits the second elevation, and C46 admits the second
+duration and the one keyframe. Those criteria state the whole rule where
+they stand; this section adds no values of its own so there is exactly one
+place to read, and to change, each one. Everything else in C1-C76 is
+unchanged, and no new criterion was needed: STEP 3 is entirely amendment.
+Should a later step need one, numbering continues from C77.
+
+## 24. STEP 3 definition of done
+
+All STEP 1 and STEP 2 done items hold as amended, plus:
+
+12. `npm test` exits 0 with the C38 parity test covering the twelve-name
+    theme set and the C39 contrast test covering `--success` and
+    `--danger` against both backgrounds in both themes.
+13. Serving docs/ locally: a correct answer and a wrong answer are
+    distinguishable by state color, not by opacity or a glyph alone, in
+    both themes; the C68 share string is byte-identical to its STEP 2
+    form.
+14. `npm run shots` still produces exactly 32 PNGs (C53 unchanged) and the
+    four game states are visually inspected per the PLAN.md standing rule.

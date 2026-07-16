@@ -46,6 +46,8 @@ const darkStart = tokens.search(/@media\s*\(prefers-color-scheme:\s*dark\)/);
 const rootDecls = parseDecls(braceBlock(tokens, rootStart));
 const darkDecls = parseDecls(darkStart === -1 ? "" : braceBlock(tokens, darkStart));
 
+// The theme set is twelve names as of the STEP 3 amendment to C37/C38:
+// the eight STEP 1 names plus the four state/elevation additions.
 const THEME = [
   "--bg",
   "--surface-glass",
@@ -55,6 +57,10 @@ const THEME = [
   "--hairline",
   "--accent",
   "--shadow-glass",
+  "--success",
+  "--danger",
+  "--accent-soft",
+  "--shadow-raised",
 ];
 
 const LIGHT = {
@@ -66,6 +72,10 @@ const LIGHT = {
   "--hairline": "#E5E2DC",
   "--accent": "#B45309",
   "--shadow-glass": "0 4px 24px rgba(0, 0, 0, 0.08)",
+  "--success": "#15803D",
+  "--danger": "#B91C1C",
+  "--accent-soft": "rgba(180, 83, 9, 0.12)",
+  "--shadow-raised": "0 12px 40px rgba(0, 0, 0, 0.14)",
 };
 
 const DARK = {
@@ -77,6 +87,10 @@ const DARK = {
   "--hairline": "#2E2B26",
   "--accent": "#E8A33D",
   "--shadow-glass": "0 4px 24px rgba(0, 0, 0, 0.40)",
+  "--success": "#4ADE80",
+  "--danger": "#F87171",
+  "--accent-soft": "rgba(232, 163, 61, 0.16)",
+  "--shadow-raised": "0 12px 40px rgba(0, 0, 0, 0.55)",
 };
 
 const INDEPENDENT = [
@@ -101,6 +115,7 @@ const INDEPENDENT = [
   "--r-s",
   "--r-m",
   "--dur",
+  "--dur-slow",
   "--blur",
 ];
 
@@ -153,11 +168,11 @@ describe("tokens.css theme values (C37)", () => {
 // ---------- tokens.css: C38 parity ----------
 
 describe("tokens.css theme parity (C38)", () => {
-  it("dark block declares exactly the eight theme names", () => {
+  it("dark block declares exactly the twelve theme names", () => {
     expect([...darkDecls.keys()].sort()).toEqual([...THEME].sort());
   });
 
-  it(":root declares all eight theme names", () => {
+  it(":root declares all twelve theme names", () => {
     for (const name of THEME) {
       expect(rootDecls.has(name), name).toBe(true);
     }
@@ -185,8 +200,10 @@ describe("tokens.css theme parity (C38)", () => {
 // ---------- C39 contrast ----------
 
 describe("contrast ratios (C39)", () => {
+  // --accent-soft and --shadow-raised are fill/effect tokens, outside the
+  // text-contrast rule (STEP 3 amendment), exactly like --surface-glass.
   for (const [theme, set] of [["light", LIGHT], ["dark", DARK]]) {
-    for (const fg of ["--ink", "--muted", "--accent"]) {
+    for (const fg of ["--ink", "--muted", "--accent", "--success", "--danger"]) {
       for (const bg of ["--surface-solid", "--bg"]) {
         it(`${theme}: ${fg} vs ${bg} >= 4.5:1`, () => {
           expect(contrastRatio(set[fg], set[bg])).toBeGreaterThanOrEqual(4.5);
@@ -275,12 +292,31 @@ describe("glass rules (C44, C45)", () => {
     expect(glass[1]).toContain("box-shadow: var(--shadow-glass)");
   });
 
-  it("box-shadow appears exactly once, as the token reference (C45)", () => {
+  it("box-shadow appears exactly twice, both token references (amended C45)", () => {
+    // STEP 3: the glass shadow plus exactly one --shadow-raised
+    // declaration on the raised surfaces. Nothing else may shadow.
     const uses = styles.match(/box-shadow/g);
-    expect(uses).toHaveLength(1);
+    expect(uses).toHaveLength(2);
     expect(styles).toMatch(/box-shadow\s*:\s*var\(--shadow-glass\)\s*;/);
-    const defs = tokensCss.match(/--shadow-glass\s*:/g);
-    expect(defs).toHaveLength(2);
+    const raised = styles.match(/box-shadow\s*:\s*var\(--shadow-raised\)\s*;/g);
+    expect(raised).toHaveLength(1);
+    expect(tokensCss.match(/--shadow-glass\s*:/g)).toHaveLength(2);
+    expect(tokensCss.match(/--shadow-raised\s*:/g)).toHaveLength(2);
+  });
+
+  it("the raised shadow names only the model overlay and correct card (amended C45)", () => {
+    const rule = styles.match(
+      /([^}]*)\{\s*box-shadow\s*:\s*var\(--shadow-raised\)\s*;\s*\}/
+    );
+    expect(rule).not.toBeNull();
+    const selectors = rule[1]
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    expect(selectors.sort()).toEqual([
+      "#game-cards button.card-correct",
+      "#model-overlay",
+    ]);
   });
 
   it("backdrop-filter lives only inside the single @supports block (C44)", () => {
@@ -302,11 +338,12 @@ describe("glass rules (C44, C45)", () => {
 
 // ---------- motion (C46) ----------
 
-describe("motion (C46)", () => {
-  it("exactly one --dur: 150ms token, declared in tokens.css :root", () => {
-    const all = (tokens + styles).match(/--dur\s*:\s*150ms/g);
-    expect(all).toHaveLength(1);
+describe("motion (C46 as amended by STEP 3)", () => {
+  it("exactly two duration tokens, declared in tokens.css :root", () => {
+    expect((tokens + styles).match(/--dur\s*:\s*150ms/g)).toHaveLength(1);
+    expect((tokens + styles).match(/--dur-slow\s*:\s*300ms/g)).toHaveLength(1);
     expect(rootDecls.get("--dur")).toBe("150ms");
+    expect(rootDecls.get("--dur-slow")).toBe("300ms");
   });
 
   it("every transition uses var(--dur) with ease-out and no literal duration", () => {
@@ -319,15 +356,28 @@ describe("motion (C46)", () => {
       }
       expect(value).not.toMatch(/\d+m?s\b/);
     }
-    expect(styles).not.toMatch(/animation/);
   });
 
-  it("one prefers-reduced-motion block sets --dur to 0ms", () => {
+  it("every animation is the one keyframe on a token duration (amended C46)", () => {
+    const names = styles.match(/@keyframes\s+([\w-]+)/g) ?? [];
+    expect(names).toEqual(["@keyframes reveal-in"]);
+    const animations = [...styles.matchAll(/animation\s*:\s*([^;]+);/g)];
+    expect(animations.length).toBeGreaterThan(0);
+    for (const [, value] of animations) {
+      expect(value).toContain("reveal-in");
+      expect(value).toMatch(/var\(--dur(-slow)?\)/);
+      expect(value).toContain("ease-out");
+      expect(value).not.toMatch(/\d+m?s\b/);
+    }
+  });
+
+  it("one prefers-reduced-motion block zeroes both durations (amended C46)", () => {
     const blocks = styles.match(/@media\s*\(prefers-reduced-motion:\s*reduce\)/g);
     expect(blocks).toHaveLength(1);
     const start = styles.search(/@media\s*\(prefers-reduced-motion:\s*reduce\)/);
     const block = braceBlock(styles, start);
     expect(block).toMatch(/--dur\s*:\s*0ms\s*;/);
+    expect(block).toMatch(/--dur-slow\s*:\s*0ms\s*;/);
   });
 });
 

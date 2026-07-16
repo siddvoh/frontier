@@ -75,14 +75,27 @@ describe("docs/index.html (C35, C2, C1)", () => {
     expect(doc.querySelector("#app")).not.toBeNull();
   });
 
-  it("uses only relative asset paths except the attribution link", () => {
+  it("uses only relative asset paths except the attribution link and the data: favicon", () => {
     const refs = [...doc.querySelectorAll("[src], [href]")];
     for (const el of refs) {
       const value = el.getAttribute("src") ?? el.getAttribute("href");
       if (value === "https://epoch.ai") continue;
+      // W10.S3: the favicon is an inline data: URI, self-contained like
+      // every other asset, so it is excepted the same way the C35
+      // attribution link is.
+      if (value.startsWith("data:")) continue;
       expect(value.startsWith("/")).toBe(false);
       expect(value.startsWith("http")).toBe(false);
       expect(value.startsWith("//")).toBe(false);
     }
+  });
+
+  it("has an inline data: URI favicon so no route logs a favicon 404 (W10.S3)", () => {
+    const icon = doc.querySelector('link[rel="icon"]');
+    expect(icon).not.toBeNull();
+    const href = icon.getAttribute("href");
+    expect(href.startsWith("data:image/")).toBe(true);
+    expect(href.startsWith("/")).toBe(false);
+    expect(href.includes("http")).toBe(false);
   });
 });

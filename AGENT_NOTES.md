@@ -2,6 +2,395 @@
 
 Running notes between slice agents. Newest wave at top.
 
+## Wave 13 (the magic layer)
+
+### W13.S4 (picker front door, tests/w13s4.test.js)
+- W11.S3 had already landed the mode cards, the storage-read stats, and
+  the rules copy, so this slice only closed the gaps between the picker
+  and the screens behind it. Its w11s3 assertions all stayed green.
+- The daily card carries `p.game-mode-day` ("Frontier #N" via share.js)
+  between the blurb and `.game-mode-stat`, matching the W13.S2 headline.
+  Endless has no day element: it is not a dated run.
+- Pre-launch (C76): with an injected date < LAUNCH_DATE the stat reads
+  `Starts 2026-07-15.` and no day number renders. It no longer reads any
+  daily record then, so a stale pre-launch record cannot show a score for
+  a run that has not started.
+
+### W13.S3 (streak stakes, tests/w13s3.test.js)
+- PLAN FILE-LIST FIX (applied): w11s3 pinned "Streak 1" too, not just
+  w8s1; both are in the file list and both rescoped.
+- Markup: `.game-progress` holds `span.game-streak` (the count alone,
+  matches /^\d+$/) plus `span.game-streak-label`. w8s1's progressText()
+  helper now reassembles "Streak N · Best M" from that markup, so its
+  exact-equality assertions kept their strength.
+- The celebration compares against `bestAtStart`, captured once at render,
+  NOT the live best: recordCorrect persists the new best immediately, so
+  comparing to storage congratulates every correct answer. It also stays
+  silent when bestAtStart is 0, since a first-ever run beats nothing.
+  w13s3 pins both traps.
+- Styles for `.game-streak` / `.streak-best` live in W13.S1: one slice per
+  wave writes styles.css, so S2/S3/S4 stay markup-only and the wave can
+  still be built in parallel.
+
+### W13.S2 (results as a moment, tests/w13s2.test.js)
+- `render(state, todayUtc, now = new Date())` gained a third parameter:
+  the countdown reads the clock once at render. No timers anywhere (w13s2
+  spies setInterval/setTimeout and pins zero calls); the screen states the
+  wait, it does not tick.
+- Results order: `.game-day` (h3, "Frontier #N") → `.game-score` (X/M) →
+  `.game-squares` → `.game-best` (only when best > 0) → `.game-next-daily`
+  → `.game-share` (muted, the copy source) → `.game-copy`. C72 needs the
+  share string rendered, so it stays; it is quiet, not gone.
+- CRITIC FIX: `.game-best` renders only when the best streak is > 0. Best
+  streak is an endless stat and "Best streak: 0" is noise on a daily-only
+  player's results.
+- w8s2's pins needed no rescope: the reshape added around `.game-score`
+  and `.game-share` rather than replacing them.
+
+### W13.S1 (reveal choreography, tests/w13s1.test.js)
+- PLAN FILE-LIST FIX (applied): the slice claimed no count-pin test needed
+  changing. Wrong: w5s1/w7s2/w11s1 all pinned W5.S1's "transitions animate
+  only color or border-color", which the press-in transform reshapes. The
+  three suites joined the file list and the pin was NARROWED, not dropped:
+  transform is allowed on `#game-cards button` and nowhere else (w5s1 now
+  enumerates every rule with a transform transition and pins that list to
+  exactly one selector), and the opacity/background/all bans are intact.
+- Choreography: `#game-cards button` rests at translateY(0) scale(1);
+  `.card-picked` presses to scale(0.99); `.card-correct` lifts to
+  translateY(calc(-1 * var(--sp-1))) and carries the amended-C45 raised
+  shadow. Lengths are tokens, so no raw px enters styles.css.
+- The fade is on `.game-reveal` and `#game-cards .card-value` (all card
+  values, not just correct/wrong ones: the unpicked card's value must
+  animate identically or the pair reads broken when you answer right).
+  Stagger is `animation-delay` on `button:nth-child(2) .card-value` =
+  var(--dur); w13s1 pins every delay to 0ms or a token so reduced motion
+  reaches them.
+- animation-delay is NOT matched by the `animation\s*:` regex the motion
+  pins use, so delays need their own assertion; w13s1 has it.
+- Verified live: press scale(0.99), lift -4px, values opacity 1 after the
+  fade. With reducedMotion=reduce, --dur-slow computes to 0ms and every
+  state is fully applied 50ms after the click: the answer never depends on
+  motion, only its tweening does.
+
+## Wave 12 (STEP 3 design system)
+
+- Wave 12 is self-contained: every STEP 3 value is normative in the
+  PLAN.md Wave 12 preamble; W12.S1 transcribes it into SPEC.md verbatim,
+  and S2/S3 implement from the same normative values, so all three
+  slices are independent and file-disjoint (parallel is fine).
+- Pin ownership: the pre-STEP-3 count pins live in w1s2/w7s2/w10s1/
+  w11s1 (all owned by W12.S2) and the emoji squares pins in w8s2 (owned
+  by W12.S3). Wave 13 slices own w8s2/w8s1/w11s3 respectively for the
+  same reason; rescope at equal or greater strength, never weaken.
+
+### W12.S3 (game state colors, tests/w12s3.test.js)
+- Class contract, now three states on a card: `.card-picked` (the pick,
+  accent border), `.card-correct` (the answer, success outline + raised
+  shadow), `.card-wrong` (a wrong pick, danger border). A wrong pick
+  carries BOTH card-picked and card-wrong; endless clears all three per
+  question. W13.S1 choreography must keep these names.
+- The verdict `<p>` carries `game-verdict` plus `verdict-correct` /
+  `verdict-wrong`. Both views build it now; endless previously had an
+  unclassed `<p>`.
+- Squares contract (STEP 3): `.game-squares span` is an empty
+  `role="img"` element with `data-correct="true"|"false"` and
+  aria-label correct/wrong; CSS colors it. NO glyph text on screen. The
+  C68 share string still carries the emoji squares and is built by
+  share.js: w12s3 pins both halves, including "no glyph outside
+  .game-share". W13.S2 reshapes this screen; keep the data-correct
+  contract or own w12s3.
+- Verified live in both themes: wrong border rgb(185,28,28) light /
+  rgb(248,113,113) dark, correct outline rgb(21,128,61) / rgb(74,222,128),
+  squares 16px token-colored blocks, share string "Frontier #2 2/3" with
+  emoji intact.
+- LOCAL-VERIFICATION GOTCHA: `currentUtcDate()` is UTC, so after ~20:00
+  US Eastern the daily rolls to tomorrow. Seed daily records with
+  `new Date().toISOString().slice(0,10)` (what scripts/screenshot.js
+  does), never a hardcoded date, or the view renders a fresh game and
+  your check times out waiting for #game-results.
+
+### W12.S2 (tokens + styles, tests/w12s2.test.js)
+- PLAN FILE-LIST FIX (applied): tests/w5s1.test.js also pinned
+  box-shadow count 1 and was missing from the slice's file list; it was
+  added to PLAN.md and rescoped with the others. If you add a shadow or
+  a duration, FIVE suites pin it: w1s2, w5s1, w7s2, w10s1, w11s1.
+- Do NOT add a second rule for an existing selector: W11.S1 already had
+  `#game-cards button.card-correct` and `.chip:has(input:checked)`;
+  STEP 3 upgrades those rules IN PLACE (--accent -> --success, plus the
+  --accent-soft fill). w11s1 now pins "exactly one standalone
+  card-correct rule" so a duplicate fails loudly. `.card-picked` keeps
+  its accent border (the pick), `.card-wrong` is the new danger state.
+- The amended C45 raised rule is a shared selector list
+  (`#model-overlay, #game-cards button.card-correct`), pinned by exact
+  sorted list in w1s2 and w12s2. Note this makes `card-correct` appear
+  twice in the file (state rule + shadow list member): count standalone
+  rules with `(^|\})\s*<selector>\s*\{`, never a bare substring match.
+- The opacity pin in w11s1 was rescoped, not weakened: keyframe blocks
+  are stripped before counting, and the assertion now also proves no
+  button/state rule dims by opacity (stronger than the old bare count).
+- HARNESS GOTCHA (do not "fix" the reveal): the reveal-in fade means
+  game-*-reveal PNGs can capture .game-reveal mid-animation and show an
+  empty gap. Verified live in both themes: opacity settles to 1 with the
+  text present, correct outline rgb(21,128,61) light / rgb(74,222,128)
+  dark, raised shadow at the right per-theme alpha. Same family as the
+  W11 border-transition and W10 scroll-reset artifacts.
+- W12.S3 owns applying `.card-wrong` in the views; until then the danger
+  state has no live card (the CSS is ready and pinned).
+
+### W12.S1 (STEP 3 transcription, tests/w12s1.test.js)
+- SPEC.md gained a "# STEP 3: DESIGN SYSTEM" section (sections 24-25:
+  amended tokens, then done-items 12-14) and "(Amended by STEP 3.)"
+  stamps on exactly C37, C38, C39, C45, C46. No other SPEC line changed;
+  C32 and the C53 32-shot count are explicitly untouched.
+- STEP 3 numbering: new criteria would continue from C77, but the
+  amendment needed none; it is entirely amendments to the five.
+- w12s1 counts stamps with `^- C\d+\. \(Amended by STEP 3\.\)` per line,
+  NOT a raw substring count: the section preamble quotes the stamp
+  string, so a bare count returns 6. Keep the anchored regex if you add
+  criteria.
+- The spec is now the source w12s2/w12s3 implement against; if a value
+  ever needs to change, change PLAN.md's normative block and SPEC.md
+  together or w12s1 fails loudly.
+
+## Wave 11 (polish inside the frozen token set; suite 670/670; all four slices done)
+
+### W11.S2 (catalog chips and table typography, tests/w11s2.test.js)
+- Row contract (w3s1/w5s4/w11s2 rescoped at equal or greater
+  strength): 8 td cells per row. The standalone Organization column is
+  gone; td[0] (.nowrap) holds the name link followed by a block
+  `div.muted` org subline (white-space inherits, so the subline never
+  wraps either). Indexes shifted: Released 1 (.nowrap), num columns 2-6,
+  Weights 7 (span.badge iff openWeights non-null). Anything querying
+  catalog cells by index must use the new positions.
+- The hidden-select bridge is dissolved: #catalog-filter-org no longer
+  exists; the checked `.chip-set input` boxes ARE the organization
+  multi-select state (w11s2 pins "no backing select": the only selects in
+  the view are catalog-sort-key/-dir). The filter-bar id list is now the
+  four survivors (name, open, sort key, direction), pinned by w5s4 and
+  w11s2; the chip-set stays the bar's immediate next sibling.
+- update() reads checked chips directly; both `controls` and `chips`
+  hosts get input+change listeners. There is no chip<->select sync code
+  left to maintain.
+- Shots re-run and inspected (catalog light/dark, 1440/375): subline
+  layout, right-aligned numerics, badges, chip wrap at 375px with no
+  body horizontal scroll all correct; left-anchored timeline strip in
+  PNGs remains the known W10 capture artifact.
+
+### Integration (by the wave orchestrator, inside W11.S1's styles.css)
+- Two cross-slice bridges after the parallel slices landed: `.num` gained
+  `text-align: right` (the W11.S2 bullet's "numeric columns right-aligned"
+  is CSS and fell between the S1/S2 file lists; w5s1's .num test only pins
+  tabular-nums), and a new standalone `.game-modes` rule (list-style none,
+  padding 0) because the picker's new li.card blocks made the ul's default
+  markers read as a defect.
+- HARNESS GOTCHA (do not "fix" the app): game-endless-reveal PNGs show the
+  picked card with a hairline border, but live the .card-picked border
+  settles to var(--accent): verified getComputedStyle rgb(180,83,9) 500ms
+  after click, unchanged across a fullPage capture. The harness screenshots
+  the frame before the 150ms border-color transition runs. Same family as
+  the W10 scroll-reset gotcha: verify answer-state styling in a live
+  browser, never from the PNGs.
+- Shots re-run and inspected after the bridges: catalog chips wrap at
+  375px with no body horizontal scroll, numerics right-aligned in both
+  themes, metric cards with deltas and lower-is-better notes, picker cards
+  marker-free, hero game prompt, dark parity clean. The doubled squares
+  row on game-daily-results is the known W13.S2 item, not a Wave 11
+  regression.
+
+### W11.S1 (stylesheet contracts, tests/w11s1.test.js)
+- Chips: `.chip-set` works as a plain div or fieldset host (border/
+  padding/margin zeroed, flex row, gap --sp-2); `.chip` is a label
+  wrapping its own checkbox; the selected state is `.chip:has(
+  input:checked)` (accent border and text), so markup needs NO selected
+  class. `.chip input { margin: 0 }`; the native box stays visible.
+- Button states: `button:hover:enabled` is an ink fill (bg --ink, text
+  --bg); `button.ghost:hover:enabled` accent border/text on surface-solid
+  (higher specificity beats the ink fill); `button:disabled` muted text,
+  hairline border, full opacity. ALL hover rules are `:hover:enabled`;
+  follow that pattern or disabled buttons light up. The only `opacity:`
+  declaration left in styles.css is .overlay-scrim (w11s1 pins count 1).
+- Game: `.game-prompt` is the hero (--font-display at --text-4, --ink;
+  wins over .muted only because it is declared later at equal
+  specificity). `#game-cards button` extended in place (ink text,
+  surface-solid, hairline); id specificity means generic button hover/
+  disabled rules never touch game cards. `#game-cards
+  button.card-picked` accent border; `...card-correct` 2px accent outline
+  + 2px offset; `.card-value` block, --text-2, tabular-nums.
+- w11s1 pins every new W11.S1 rule block as transition/box-shadow/
+  backdrop-filter free EXCEPT .chip (color+border-color only) and pins
+  `#game-cards button` as containing no var(--accent). Never write a
+  `:focus` pseudo-class in any `#game-...` selector (w7s2 regex ban).
+- Pinned counts unchanged: box-shadow 1, backdrop-filter 2, one 720px
+  query, --dur declared once.
+
+- Markup gotchas: `fieldset.chip-set` carries legend "Organization" with
+  one `label.chip[for=catalog-org-<i>]` per sorted org wrapping its
+  checkbox + span; chip inputs can never live inside `.filter-bar` (w5s4
+  pins the bar's input/select ids to exactly the four surviving
+  controls); weights wrap in `span.badge` only when openWeights is
+  non-null (null renders plain MISSING, no empty pill).
+
+### W11.S3 (game screens)
+- picker.js is now `render(state, todayUtc = currentUtcDate())`, the
+  daily.js date-injection pattern; main.js one-arg dispatch unaffected.
+  Structure kept: section.view-picker > h2 + p.muted + ul.game-modes;
+  each li carries `.card` and holds a[href] (unchanged hrefs), the block
+  p.muted blurb, and a new `p.game-mode-stat.muted` stats line ("Not
+  played today." / "In progress: N of M answered." / "Done today: X/M."
+  from getDailyRecord(todayUtc); "Best streak: N." from getBestStreak()).
+  Reads only via the storage module; rendering never writes; no .glass
+  (w9s1 counts intact).
+- Answer states in both modes: correct button gains class `card-correct`,
+  chosen button `card-picked` (both on one button when the pick was
+  right); daily keeps data-picked="true" on the same element. Each button
+  gets exactly one appended `span.card-value` INSIDE it (never a new
+  #game-cards child; w8s1 pins the two-button children). Stat values
+  format via STAT_REVEAL[field].format from ../reveal.js; scenario
+  values are fmtUsd(costA)/fmtUsd(costB).
+- endless.js resets per question in showQuestion(): the textContent
+  assignment drops value spans and classList.remove clears both state
+  classes; daily rebuilds cards per question.
+- w11s3 pins the picker anchor list exactly (["#/game/daily",
+  "#/game/endless"]), li.card count 2, and the p.game-mode-stat texts by
+  containment; W13.S4 (picker front door) and W12.S4 (state recolor)
+  must keep the class names and those texts or own tests/w11s3.test.js.
+- `cardValues(question)` is deliberately duplicated in daily.js and
+  endless.js: reveal.js was not in this slice's file list. Its canonical
+  home is reveal.js; consolidation candidate below.
+
+### W11.S4 (compare)
+- The metric card IS the group element: `div.bar-group.metric-card
+  [data-metric]`, so every existing .bar-group query holds; the existing
+  h3 is the card heading; the two price groups append `p.better-lower`
+  with textContent exactly "lower is better" after the h3.
+- Deltas: each METRICS entry gained `digits` (2 price, 0 context, 1
+  benchmarks) and `betterLower` (true only for prices). shown[i] =
+  Number(value.toFixed(digits)); best = min(shown) for price groups else
+  max. Every non-null row with shown[i] !== best appends `span.delta`
+  INSIDE span.bar-value (after a single space text node), keeping the
+  w5s5 3-sibling-cell contract. Text = format(gap) + (" more" |
+  " behind"), a difference of displayed readings only (C19). Displayed
+  ties (93.24 vs 93.21 both print 93.2) mean multiple leaders and NO
+  delta; null rows never carry one.
+- `.bar-value` textContent is no longer the bare value on trailing rows
+  ("$4.00 $2.00 more"); w5s5's exact equality checks survive because
+  they hit leader/null rows. New tests pinning trailing-row text must
+  include the delta. Bar widths stay proportional to the raw non-null
+  max including for prices; `.better-lower` is what flags the inverted
+  direction there.
+
+### Quality review (wave gate)
+- Thermo-nuclear review verdict: approve. Recorded consolidation
+  candidates, each needing a future slice that owns the files together:
+  cardValues() into reveal.js (duplicated daily/endless);
+  currentUtcDate() (now picker.js + daily.js); the el() builder
+  (scenario/daily/endless) and the test fixture factories from the W10
+  note still stand. styles.css is at ~895 lines and Waves 12-13 both add
+  rules; watch the 1k-line boundary (a file split may be spec-
+  constrained: tests assume exactly css/tokens.css + css/styles.css).
+
+## Wave 10 complete (suite 596/596)
+
+### W10.S2 (shared reveal module, docs/js/game/reveal.js)
+- tests/w8s2.test.js is in this slice's file list; ONLY the stat-reveal
+  assertions in its playthrough loop were rescoped (raw dot-path +
+  String(value) containment became human label + spec-formatted values +
+  a new negative assertion that the raw dot-path never renders: strictly
+  stronger, the Wave 8 rescope precedent).
+- reveal.js exports STAT_REVEAL (frozen label/format map keyed by the six
+  C59 dot-path fields) and revealParagraphs(question, name) -> <p>[]
+  ready to append inside a .game-reveal. `name` is an id -> display-name
+  function so the module stays ignorant of how each view looks up models.
+  Stat reveals are one line `Label: NameA value vs NameB value`; scenario
+  reveals are the budget line plus both C26 formulas verbatim, formula
+  lines carrying class "cost-formula" (in BOTH modes now; endless
+  previously had no class there, no test pinned that).
+- Both game views now import ../reveal.js and hold no local label map;
+  w10s2 pins this by source grep (`from "../reveal.js"` present,
+  "STAT_REVEAL =" and stat label/field literals absent from views). The
+  daily budget line changed from "Budget: $X/mo" to the shared endless
+  phrasing "Budget: $X for N Mtok in / M Mtok out per month".
+- Hygiene: reveal.js must keep even comment text free of the literal
+  tokens "local"+"Storage", "fetch(", "Math"+".random" (w10s2 and the
+  w9s1 occurrence-counted greps both police it).
+- Duplication candidates now at their worst and worth one future slice
+  allowed to touch many files: the el() builder (scenario/daily/endless),
+  modelName lookup, and the model()/artifact() test fixture factories
+  (four test files). Verified: 596/596 green, `npm run shots` inspected
+  (reveal shows "Release date: ... 2026-07-09 vs ... 2023-03-15", no
+  dot-paths, both themes/viewports clean). 2026-07-15 is launch day, so
+  the game-daily-results shot now captures real results (Frontier #1),
+  not the C76 notice.
+
+## Wave 10 (functional defect remediation; suite 586/586)
+
+### Integration (by the wave orchestrator, inside W10.S1's styles.css)
+- Cross-slice CSS bridged after the parallel slices landed:
+  `.timeline-track[data-lanes="3".."6"]` min-height rules sized as
+  calc(var(--text-1) * var(--lh-body) * (N+1)), one label line per lane
+  plus the lane-0 line. Padding was tried first and does NOT work: the
+  global border-box box-sizing means padding shrinks the content box
+  under the track's inline `height: var(--sp-8)` instead of growing the
+  box. min-height beats the inline height. Verified by execution: with
+  the real 7-model artifact (deepest lane 4) the track grows to 97.5px
+  and the worst label bottom sits exactly on the track box bottom.
+- HARNESS GOTCHA (do not "fix" the scroll): the W10.S4 scroll-to-newest
+  works in a live browser (measured scrollLeft 2019 of range 2028 on
+  the committed data) but every harness PNG shows the strip at its LEFT
+  end: Chromium's fullPage capture (captureBeyondViewport) resets inner
+  scroll positions, measured scrollLeft 2019 -> 39 across a single
+  page.screenshot({fullPage: true}) call. A left-anchored strip in
+  shots/ is a capture artifact, not a regression; verify scroll behavior
+  with a live browser, never from the PNGs.
+- BROWSER-CACHE GOTCHA for live audits: a long-lived local browser
+  serves stale docs/js modules and styles.css from memory cache even
+  across location.reload(); a plain page.goto in a FRESH browser (what
+  the harness does) gets current files. If a live check contradicts the
+  code on disk, curl the served file and compare before diagnosing.
+- Zero console errors verified across all routes in a fresh browser
+  (the W10.S3 favicon landed); document scrollWidth == clientWidth at
+  375px on catalog, model, compare, game (no body horizontal scroll).
+
+### W10.S1 (scenario contract, nav containment, tick styles)
+- .scenario-ranked suppresses ol markers (list semantics kept); each li
+  is a 2-col grid below 720px (rank spans 3 rows) and a 3-col grid at
+  >=720px (rank spans 2 rows, ranking-value in col 3, formula on its
+  own row spanning cols 2 to -1). If scenario.js ever adds a fifth span
+  per li, bump the .rank grid-row spans (base 3, wide 2).
+- Header containment mechanism: #site-header nav gains overflow-x auto
+  (zeroes its flex min-width so it shrinks and scrolls internally);
+  base header gap tightened to --sp-2, desktop values restored inside
+  the single 720px query; #site-header nav a and the outside-nav
+  `#site-header > a[data-nav="game"]` get white-space nowrap. w10s1
+  pins that body/html/#site-header carry no overflow declarations.
+- .timeline-tick: absolute, top 50%, muted --text-1, hairline
+  border-left as the tick rule, nowrap. Pinned counts re-asserted in
+  w10s1: 1 box-shadow, 2 backdrop-filter, one 720px query.
+
+### W10.S3 (data: favicon, clean console)
+- Inline 16x16 PNG favicon as a data: href in index.html (base64
+  checked free of http/rgb/#/gradient( and the C54 banned substrings;
+  re-check those substrings if the icon is ever regenerated).
+- tests/w1s1.test.js relative-path assertion gains exactly one
+  allowance: `if (value.startsWith("data:")) continue;` after the
+  epoch.ai exception, plus one positive favicon test. The w4s1 C2 grep
+  needed no change (its offender predicate is startsWith("/")/
+  startsWith("http"), which data: never trips).
+
+### W10.S4 (timeline first-paint)
+- New DOM contract: the strip carries data-scroll-target (percent of
+  the newest dot); .timeline-track carries data-lanes (deepest occupied
+  lane, consumed by the integration CSS above); .timeline-tick spans
+  (2023..generatedAt year) carry inline left% only, 2023 clamps to 0%,
+  raw percents > 100 omitted. Ticks are appended before dots so
+  dot-order assertions hold.
+- scheduleInitialScroll sets scrollLeft = target% of (scrollWidth -
+  clientWidth) in a queueMicrotask, guarded by range > 0 so jsdom (no
+  layout) is a no-op; it relies on the caller attaching the strip in
+  the same task, which main.js's synchronous replaceChildren does.
+- leftPercent, TIMELINE_START, assignLanes, render signatures and all
+  C34 offsets unchanged; w3s1/w5s2 untouched and passing.
+
 ## Wave 9 (STEP 2 integration audit and harness; suite 552/552)
 
 ### Integration (by the wave orchestrator, inside docs/js/game/views/picker.js)

@@ -217,6 +217,292 @@ localStorage only through the W6.S3 module (C65).
   - Verified by execution: `npm run shots` exits 0 and `shots/` holds exactly 32 PNGs; the four game states are visually inspected per the standing rule before flipping this box (done-item 11)
   - tests/w9s2.test.js keeps the W4.S3 hygiene pattern without banned strings: `Math.random` absent from scripts/ and docs/js/, no `gradient(` in docs/, the C58 PRNG listing byte-identical in questions.js (C19, C42, C58)
 
+## Wave 10: functional defect remediation
+
+W10.S1 defines the CSS class contract (the W5.S1 precedent); view slices
+emit the markup. All four slices are file-disjoint.
+
+- [x] W10.S1 | files: docs/css/styles.css, tests/w10s1.test.js | stylesheet: scenario results contract, nav containment, timeline ticks
+  - Root defect: a run scenario renders run-on text "1. 1Claude Fable
+    5SWE-bench Verified: 95.050.00 Mtok x $10.00 + ..." because scenario.js
+    emits `.scenario-ranked`/`.rank`/`.model-name`/`.ranking-value`/
+    `.cost-formula` markup but styles.css defines none of those classes;
+    the ol marker also duplicates the `.rank` span
+  - `.scenario-ranked`: suppress the list markers (list semantics kept),
+    lay each li out as separate rank / name / ranking-value / formula
+    cells (grid at >=720px, stacked below), `.cost-formula` in --text-1
+    muted, `.rank` in tabular-nums; the duplicated visible rank is gone
+  - Root defect: #site-header nav overflows 375px and clips the Game
+    link; contain the nav below 720px (tighter gap plus overflow-x auto
+    scoped to the nav only) so the page body never scrolls horizontally
+  - `.timeline-tick` class contract consumed by W10.S4: absolutely
+    positioned year labels in --text-1 muted with a hairline rule on the
+    axis
+  - All W1.S2/W5.S1/W7.S2 checks unweakened: token-only values, no
+    `gradient(`, pinned box-shadow and backdrop-filter counts, single
+    720px query (C36, C40-C47); `npm run shots` inspected per the
+    standing rule
+- [x] W10.S2 | files: docs/js/game/reveal.js, docs/js/game/views/daily.js, docs/js/game/views/endless.js, tests/w8s2.test.js, tests/w10s2.test.js | shared reveal formatting, no leaked field paths (tests/w8s2.test.js in the file list so its stat-reveal assertions rescope to the spec at equal or greater strength instead of pinning the defect)
+  - Root defect: the daily reveal renders the raw dot-path
+    "pricing.outputPerMTok" and unformatted values ("Claude Fable 5: 50")
+    while endless.js already holds the correct STAT_REVEAL
+    label-and-formatter map; the two views disagree on the same reveal
+  - Extract STAT_REVEAL and the reveal-line builders into
+    docs/js/game/reveal.js; both game views consume it; stat reveals show
+    human labels and formatted values (fmtUsd/fmtInt/fmtDate/fmtScore);
+    scenario reveals keep the exact C60 formula strings verbatim
+  - reveal.js imports nothing outside docs/js/, no fetch, no storage
+    access (C13 single fetch site and C65 single storage module greps
+    unchanged)
+  - jsdom tests: the daily reveal for every stat template asserts the
+    human label and formatted value and asserts no raw dot-path string in
+    the rendered output; all W8.S1 assertions keep passing, and the
+    stat-reveal assertions in tests/w8s2.test.js's playthrough loop are
+    rescoped to assert the human label and the formatted values at equal
+    or greater strength (the Wave 8 precedent: stub-era assertions are
+    rescoped to the spec, never weakened); every other w8s2 assertion
+    keeps passing unchanged (C60, C71)
+- [x] W10.S3 | files: docs/index.html, tests/w1s1.test.js | favicon and clean console
+  - Root defect: every page load logs a favicon.ico 404, the only console
+    error in the app
+  - Add an inline `data:` URI favicon link in index.html; the C2 grep
+    stays green (no `/` or `http` href added, docs/ file list unchanged);
+    the w1s1 relative-path assertion gains exactly this one `data:` href
+    allowance, mirroring the C35 epoch.ai exception; every other w1s1
+    assertion unweakened (C2, C35)
+  - Done means: serving docs/ locally shows zero console errors on all
+    routes, light and dark
+- [x] W10.S4 | files: docs/js/views/timeline.js, tests/w10s4.test.js | timeline first-paint usability
+  - Root defect: strip content measures 3042px inside a 1016px container
+    with every post-2023 dot at 97-99.6 percent left; first paint shows
+    the GPT-4 label and an empty track, both event markers sit three
+    screens of unhinted horizontal scroll away, and lane stacking
+    overflows the strip (measured label bottom 245.5 vs strip bottom 237)
+  - Keep the exact C34 linear mapping and left offsets; on first render
+    scroll the strip so the newest dot cluster is in view; emit
+    `.timeline-tick` year labels (2023 through the generatedAt year) so
+    the sparse middle reads as real history instead of a rendering defect
+  - Every dot and label renders inside the strip's box: the view sizes
+    the track for its deepest occupied lane through the existing
+    data-lane mechanism; event markers keep a visible accent glyph at
+    their C34 positions, marker click still reveals title and body, dot
+    click still navigates to `#/model/:id` (C34)
+  - jsdom asserts: C34 offsets unchanged for fixture dates, the initial
+    scroll target tracks the newest dot, tick elements present at
+    computed year positions, and no dot or label box extends below the
+    track
+
+## Wave 11: explorer and game polish inside the frozen token set
+
+No new tokens and no spec changes: every slice here serves existing
+criteria with better hierarchy and states. W11.S1 owns styles.css and
+defines the class contract; the three view slices emit the markup; all
+four slices are file-disjoint. Every slice runs `npm run shots` and
+inspects its states per the standing rule.
+
+- [x] W11.S1 | files: docs/css/styles.css, tests/w11s1.test.js | stylesheet: filter chips, control states, metric cards, focal prompt
+  - Filter chips: `.chip-set`/`.chip` contract replacing the four-row
+    multiselect listbox look (hairline chip, accent border and text when
+    selected); search, chips, toggle, and sort controls share one aligned
+    baseline at >=720px
+  - Button states: replace the opacity hover (reads as flicker) with
+    background/border shifts inside the existing C46 transition set;
+    disabled buttons get hairline border and muted text at full opacity;
+    ghost buttons hover to an accent border
+  - `.metric-card` contract for compare groups (surface-solid, hairline,
+    --r-m, --sp-4) plus `.delta` and `.better-lower` annotation styles in
+    --text-1 muted
+  - `.game-prompt`: the question in --font-display at --text-4 (the
+    prompt is the game's hero and currently renders at 13px muted);
+    #game-cards buttons restyled as ghost cards (surface-solid, ink text,
+    hairline border) reserving the accent for chosen/correct outlines;
+    `.card-value` styles for in-card reveal values; C71 min-height token
+    kept
+  - All C36-C47 greps unweakened; shadow count (1 declaration) and
+    backdrop-filter count pinned (C45, C44, C43)
+- [x] W11.S2 | files: docs/js/views/catalog.js, tests/w3s1.test.js, tests/w5s4.test.js, tests/w11s2.test.js | catalog markup: chips and table typography (tests/w3s1.test.js and tests/w5s4.test.js in the file list so the 9-cell row arrays rescope to the name-cell-with-muted-org-subline contract, chips as the only organization control)
+  - Organization filter emits labeled checkbox chips as the ONLY
+    organization control (multi-select semantics and C35 labels
+    preserved); the hidden `#catalog-filter-org` select bridge from the
+    first W11.S2 landing is removed, and the w3s1/w5s4 assertions that
+    pinned the select API are rescoped to drive the chips at equal or
+    greater strength (the Wave 8 / W10.S2 rescope precedent); the
+    filter-bar keeps the W5.S4 order minus the dissolved org slot
+  - Model name cells get `.nowrap` so "Claude Fable 5" never wraps;
+    organization moves to a muted second line under the name (the
+    standalone Organization column dissolves into the name cell, so the
+    w3s1/w5s4 exact 9-cell arrays are rescoped to the 8-cell contract
+    asserting the name link plus the muted org subline explicitly);
+    numeric columns right-aligned with the `.num` tabular class; weights
+    renders as a `.badge`
+  - jsdom: every W3.S1/W5.S4 filter and sort assertion keeps passing
+    (rescoped ones at equal or greater strength) plus new assertions for
+    chip semantics and cell classes (C30, C20)
+- [x] W11.S3 | files: docs/js/game/views/picker.js, docs/js/game/views/daily.js, docs/js/game/views/endless.js, tests/w11s3.test.js | game screens: focal prompt, honest answer states
+  - Picker: Daily and Endless render as two `.card` blocks with mode
+    name, one-line rules copy, and current stats read via the storage
+    module only (today's completion state, best streak); routing
+    unchanged (C70, C65)
+  - Question screens: the prompt emits `.game-prompt`; the C71
+    streak/progress line stays visible; after an answer the correct card
+    carries an accent outline, the chosen card carries a distinct pressed
+    state class, and both cards render their revealed value inline via
+    `.card-value` (formatted by the W10.S2 reveal module) so the answer
+    lands where the eye already is; the C60 reveal panel and
+    next-question control stay
+  - jsdom: correct-card and picked-card classes asserted per template
+    fixture, in-card values formatted, all W8 assertions unweakened (C71,
+    C60, C67)
+- [x] W11.S4 | files: docs/js/views/compare.js, tests/w11s4.test.js | compare metric cards and readable deltas
+  - Each of the five C32 bar groups wraps in a `.metric-card` with the
+    metric name as its heading; price groups carry a "lower is better"
+    `.better-lower` note (the current bars read fullest-is-best, which is
+    backwards for price)
+  - Root defect: proportional-to-max bars render 93.2 vs 92.9 as two
+    visually identical full bars; each non-leading row adds a `.delta`
+    annotation ("0.3 behind" style) computed from the displayed values
+    only (display formatting, not data invention, C19)
+  - Bars, widths, group count, null handling, and the 3-model cap stay
+    byte-for-byte per C32/C20; jsdom asserts five cards, the delta text
+    for a near-tie fixture, and all W3.S3/W5.S5 assertions keep passing
+
+## Wave 12: STEP 3 design-system amendment
+
+The token contract caps the ceiling: no success or danger colors (so game
+feedback falls back to emoji and opacity), one shadow, one duration. This
+wave lifts the ceiling and is fully self-contained: every design decision
+is settled below, in this plan, and W12.S1 transcribes the amendment into
+SPEC.md mechanically. No slice in this plan waits on input from outside
+the repository. Decisions, settled here and final: (1) the palette keeps
+the committed warm set; STEP 3 is purely additive, no existing token
+value changes, so every passing C37-C39 test stays valid. (2) Compare
+near-tie readability ships in W11.S4 as delta annotations under the
+existing C32; C32 is not amended. (3) The new token values are fixed
+below, precomputed to clear the C39 threshold in both themes (worst case
+4.77:1, --success against the light --bg).
+
+Normative STEP 3 content, the values W12.S1 transcribes into SPEC.md. It
+folds each into the criterion it amends (C37 carries the twelve-name set,
+C46 the two durations, and so on) and stamps them "(Amended by STEP 3.)"
+the way STEP 2 stamped its amendments, so every rule reads whole where it
+stands. Once W12.S1 has landed, SPEC.md is authoritative and this block is
+the design record behind it: change the criterion in SPEC.md, and mirror it
+here; tests/w12s1.test.js pins the spec to these values either way.
+
+- Amended C37, additions only. Light adds: `--success: #15803D;
+  --danger: #B91C1C; --accent-soft: rgba(180, 83, 9, 0.12);
+  --shadow-raised: 0 12px 40px rgba(0, 0, 0, 0.14);` Dark adds:
+  `--success: #4ADE80; --danger: #F87171;
+  --accent-soft: rgba(232, 163, 61, 0.16);
+  --shadow-raised: 0 12px 40px rgba(0, 0, 0, 0.55);` One
+  theme-independent `--dur-slow: 300ms` joins `:root` only.
+- Amended C38: the theme set becomes twelve names (the eight plus
+  --success, --danger, --accent-soft, --shadow-raised); --dur-slow joins
+  the declared-once theme-independent list.
+- Amended C39: --success and --danger join the >= 4.5:1 checks against
+  --surface-solid and --bg in both themes; --accent-soft and
+  --shadow-raised are fill/effect tokens outside the text-contrast rule,
+  like --surface-glass.
+- Amended C45: box-shadow appears in docs/ exactly as (a) the four token
+  definitions in tokens.css (two --shadow-glass, two --shadow-raised),
+  (b) the one `box-shadow: var(--shadow-glass);` in the .glass rule, and
+  (c) exactly one `box-shadow: var(--shadow-raised);` declaration in
+  styles.css whose selector list names the raised surfaces
+  (#model-overlay and the correct-answer card state). Nowhere else.
+- Amended C46: exactly two duration tokens, `--dur: 150ms` and
+  `--dur-slow: 300ms`, easing ease-out; every transition/animation
+  duration references one of them; the single reduced-motion block sets
+  both to 0ms; at most one @keyframes rule, named `reveal-in`, used only
+  by game reveal and card-state rules.
+
+- [x] W12.S1 | files: SPEC.md, tests/w12s1.test.js | STEP 3 amendment transcribed into SPEC.md
+  - Folds the normative content above into C37, C38, C39, C45, and C46
+    themselves, stamping each "(Amended by STEP 3.)", and adds a STEP 3
+    section giving the rationale plus done-items 12-14; the section
+    restates no values, so each rule has exactly one place to read and to
+    change; no other SPEC.md line changes and the transcription involves
+    zero judgment, since every value is fixed in this plan
+  - tests/w12s1.test.js asserts each amended criterion states its whole
+    rule (all twelve token names and both exact values per state color),
+    that the STEP 3 section restates no value, and that C32, C53, and C68
+    carry no STEP 3 stamp, so spec drift fails loudly
+- [x] W12.S2 | files: docs/css/tokens.css, docs/css/styles.css, tests/w1s2.test.js, tests/w5s1.test.js, tests/w7s2.test.js, tests/w10s1.test.js, tests/w11s1.test.js, tests/w12s2.test.js | amended tokens plus elevation, motion, and state styles (tokens and styles share one slice per the W1.S2 precedent because the pre-STEP-3 count pins live in the five listed test files, which this slice rescopes to the amended criteria at equal or greater strength)
+  - tokens.css declares exactly the amended C37 additions in `:root` and
+    the dark block with the values fixed above, --dur-slow in `:root`
+    only; w1s2's C38 parity assertions rescope to the twelve-name theme
+    set and its C39 contrast assertions extend over --success and
+    --danger against --surface-solid and --bg in both themes
+  - styles.css: correct/incorrect card states (--success/--danger
+    outlines with --accent-soft fills); the single --shadow-raised
+    declaration whose selector list is #model-overlay plus the
+    correct-answer card state (no markup edits needed); the single
+    reveal-in keyframe at --dur-slow; selected chips on --accent-soft
+  - The pinned counts in w1s2/w7s2/w10s1/w11s1 (box-shadow exactly one
+    declaration, transition-free state rules, single duration token)
+    rescope to exactly the amended C45/C46 allowances: two box-shadow
+    declarations (.glass and the --shadow-raised rule), state-rule
+    transitions and the one reveal-in keyframe on token durations only;
+    every other C36-C47 grep is unweakened
+- [x] W12.S3 | files: docs/js/game/views/daily.js, docs/js/game/views/endless.js, tests/w8s2.test.js, tests/w12s3.test.js | game feedback on real state colors (tests/w8s2.test.js in the file list so its emoji-glyph squares assertions rescope to the token-colored squares contract at equal or greater strength)
+  - Correct card carries the --success state, a wrong pick carries
+    --danger; class names card-correct/card-picked stay (w11s3 pins
+    them); the on-screen results squares render as token-colored
+    elements instead of raw emoji glyphs while the C68 share string stays
+    byte-identical (emoji squares are the share format, not the screen
+    format); jsdom asserts state classes per outcome and the exact C68
+    string unchanged
+
+## Wave 13: the magic layer (after Wave 12)
+
+Reveal choreography and the retention hooks every good daily game has.
+Depends on Wave 12's tokens and motion amendment; file-disjoint (styles
+vs daily vs endless vs picker).
+
+- [x] W13.S1 | files: docs/css/styles.css, tests/w5s1.test.js, tests/w7s2.test.js, tests/w11s1.test.js, tests/w13s1.test.js | reveal and streak choreography: this is the wave's only stylesheet slice, so every Wave 13 rule lands here and S2/S3/S4 stay markup-only and parallel-safe (the three listed suites pin W5.S1's motion scoping to color and border-color only, which the press-in transform reshapes; this slice owns them and narrows the pin rather than dropping it)
+  - The chosen card presses in, the correct card lifts (--shadow-raised
+    plus --success edge), in-card values fade in staggered at --dur-slow;
+    every duration and delay references a token and reduced-motion
+    collapses the sequence to instant states, inside the amended C45/C46
+    allowances that W12.S2's rescoped tests pin
+  - W5.S1's motion scoping is narrowed, not dropped: transitions still
+    animate only color and border-color everywhere, plus transform on
+    `#game-cards button` alone, and the opacity/background/all bans stay.
+    The anti-flicker rule that motivated the pin (hover and re-render
+    motion on links, controls, and table rows) is unchanged
+  - Also carries the W13.S3 streak contract, since one slice per wave may
+    write styles.css: `.game-streak` (the count as the focal figure, in
+    --font-display at --text-4) and `.streak-best` (the beaten-best
+    celebration state, in --success). W13.S3 emits the markup
+- [x] W13.S2 | files: docs/js/game/views/daily.js, tests/w8s2.test.js, tests/w13s2.test.js | results as a moment (tests/w8s2.test.js in the file list so its results-screen node assertions can rescope to the reshaped markup at equal or greater strength)
+  - Day number headline ("Frontier #N" via share.js), one squares row
+    with an X/M subline, a best-streak line once the player has a streak
+    to show (it is an endless stat: "Best streak: 0" is noise to a
+    daily-only player), and time-until-next-UTC-daily computed once at
+    render from an injected clock (display only, no timers)
+  - The exact C68 share string stays rendered inside #game-results per
+    C72 (the .game-share node and the copy button remain), presented as
+    the quiet copy block rather than a second decorative squares row;
+    C68 string byte-identical, C69 copy paths unchanged, one recorded
+    play per date (C67)
+- [x] W13.S3 | files: docs/js/game/views/endless.js, tests/w8s1.test.js, tests/w11s3.test.js, tests/w13s3.test.js | streak stakes (w8s1 and w11s3 both pin the flat "Streak N · Best M" string, so both are in the file list and rescope to the focal streak markup at equal or greater strength; the styles are W13.S1's, per one stylesheet writer per wave)
+  - The streak counter becomes the focal progress element and a
+    best-streak celebration state (class plus copy) fires when best is
+    beaten; storage via the single module and key only (C64, C65)
+- [x] W13.S4 | files: docs/js/game/views/picker.js, tests/w11s3.test.js, tests/w13s4.test.js | picker as the game's front door (tests/w11s3.test.js in the file list so its pinned mode-stat texts can rescope with the presentation at equal or greater strength)
+  - W11.S3 already landed the mode cards, the storage-read stats (not
+    played / in progress / done with score, best streak), and the rules
+    copy; those assertions stay green and unweakened. This slice closes
+    what is left between the picker and the two screens behind it
+  - The daily card names the dated run it opens, `Frontier #N` from
+    share.js, the same number W13.S2 headlines on the results screen, so
+    the front door and the moment agree
+  - Pre-launch honesty (C76): when the injected date is before
+    LAUNCH_DATE the daily card states the start date instead of claiming
+    "Not played today", which is what the route behind it already says;
+    no day number is shown for a run that has not started
+  - Routes, the pure-render contract, and storage-module-only reads are
+    unchanged (C70, C29, C65); the picker still adds no glass
+
 ## Criterion-to-slice map (audit)
 
 | Criteria | Slice |
@@ -266,5 +552,28 @@ imports within its own file list. docs/data/models.json is regenerated
 only by W6.S1 (via npm run build), matching the W2.S1 ownership precedent.
 Every STEP 2 criterion C55-C76 plus the four amendments (non-goal, C43,
 C53, schema 12.4) appears in the map above.
+
+Remediation-wave audit (Waves 10-13): like Wave 5, these waves remediate
+criteria already mapped above, so the map gains no rows. No two same-wave
+slices write the same path: Wave 10 splits styles.css / the game reveal
+module and views / index.html / timeline.js; Wave 11 splits styles.css /
+catalog.js / the three game views / compare.js; Wave 12 splits SPEC.md /
+the css pair with its four rescoped suites / the two game mode views;
+Wave 13 splits styles.css / daily.js with w8s2 / endless.js with w8s1 /
+picker.js with w11s3, so no two same-wave slices share a test file
+either. Cross-wave rewrites of the same file (styles.css in W10.S1,
+W11.S1, W12.S2, W13.S1; daily.js in W10.S2, W11.S3, W12.S3, W13.S2;
+tests/w8s2.test.js in W10.S2, W12.S3, W13.S2) follow the established
+stub-then-rewrite precedent and are ordered by wave. Where a slice
+reshapes behavior that an earlier wave's test file pins, that test file
+is in the slice's file list and its assertions rescope at equal or
+greater strength, never weaken. Every wave is executable without
+outside input: Wave 12 settles its design decisions inline and W12.S1
+transcribes the STEP 3 amendment into SPEC.md as a mechanical, tested
+slice. The C10 protection is unchanged and covers only the owner data
+files (curated.json, events.json, surprises.json, curated-sources.md).
+The standing shots rule applies to
+every slice above that touches docs/css or any view module, including the
+game views.
 
 <!-- PLAN-READY -->

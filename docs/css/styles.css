@@ -91,13 +91,20 @@ code {
 
 /* Layout */
 
+/* Header containment (W10.S1): mobile-first tighter gaps so the three nav
+   links plus the sibling Game anchor (a direct #site-header child, per
+   W7.S1) fit a 375px viewport; overflow-x scrolling is scoped to the nav
+   itself (overflow also zeroes its flex min-width so it shrinks instead
+   of pushing the header, and the page body never scrolls horizontally).
+   The single >=720px media query below restores the roomier gaps. */
+
 #site-header {
   position: sticky;
   top: 0;
   z-index: 10;
   display: flex;
   align-items: center;
-  gap: var(--sp-4);
+  gap: var(--sp-2);
   padding: var(--sp-3) var(--sp-4);
   border-bottom: 1px solid var(--hairline);
 }
@@ -109,7 +116,16 @@ code {
 
 #site-header nav {
   display: flex;
-  gap: var(--sp-3);
+  gap: var(--sp-2);
+  overflow-x: auto;
+}
+
+#site-header nav a {
+  white-space: nowrap;
+}
+
+#site-header > a[data-nav="game"] {
+  white-space: nowrap;
 }
 
 #app {
@@ -192,8 +208,15 @@ button {
   transition: color var(--dur) ease-out, border-color var(--dur) ease-out;
 }
 
-button:hover {
-  opacity: 0.85;
+/* Button states (W11.S1): the old opacity hover read as flicker. Hover is
+   a background/border shift instead; border-color rides the existing C46
+   transition, the background swap is instant (no new transition targets).
+   :enabled keeps hover states off disabled controls. */
+
+button:hover:enabled {
+  color: var(--bg);
+  background: var(--ink);
+  border-color: var(--ink);
 }
 
 button.ghost {
@@ -202,8 +225,18 @@ button.ghost {
   border-color: var(--hairline);
 }
 
+button.ghost:hover:enabled {
+  color: var(--accent);
+  background: var(--surface-solid);
+  border-color: var(--accent);
+}
+
+/* Disabled: hairline border and muted text at full opacity. */
+
 button:disabled {
-  opacity: 0.5;
+  color: var(--muted);
+  background: var(--surface-solid);
+  border-color: var(--hairline);
   cursor: default;
 }
 
@@ -313,6 +346,50 @@ summary {
 
 .num {
   font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Filter chips (W11.S1 contract, markup arrives in W11.S2): a wrapping
+   set of checkbox chips replacing the four-row organization multiselect.
+   Each .chip is a label wrapping its own checkbox (C35 semantics kept);
+   a checked chip carries the accent border and text. Inside .filter-bar
+   the set sits on the shared >=720px control baseline via the existing
+   align-items: end rule in the media query below. */
+
+.chip-set {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--text-1);
+  color: var(--muted);
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-m);
+  padding: var(--sp-1) var(--sp-3);
+  margin: 0;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--dur) ease-out, border-color var(--dur) ease-out;
+}
+
+.chip input {
+  margin: 0;
+}
+
+.chip:has(input:checked) {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .bar-row {
@@ -321,6 +398,24 @@ summary {
   align-items: center;
   gap: var(--sp-3);
   margin: 0 0 var(--sp-2);
+}
+
+/* Compare metric cards (W11.S1 contract, markup arrives in W11.S4): each
+   of the five C32 bar groups wraps in a solid hairline card; .delta and
+   .better-lower are the muted annotation lines beside bars and headings. */
+
+.metric-card {
+  background: var(--surface-solid);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-m);
+  padding: var(--sp-4);
+  margin: 0 0 var(--sp-3);
+}
+
+.delta,
+.better-lower {
+  color: var(--muted);
+  font-size: var(--text-1);
 }
 
 .form-grid {
@@ -452,6 +547,45 @@ body:has(.tray-docked:not([hidden])) #app {
   transform: translate(-100%, 0);
 }
 
+/* Wave 10 integration: data-lanes="N" (emitted by timeline.js, W10.S4)
+   is the deepest occupied dot lane. Labels stack downward from the
+   track top, one label line (--text-1 at --lh-body) per lane, so a
+   depth of N needs N+1 lines of track. The track carries an inline
+   height of var(--sp-8) (64px, border-box), which fits lanes 0-2;
+   min-height overrides it for deeper stacks so no label extends past
+   the track's box. */
+
+.timeline-track[data-lanes="3"] {
+  min-height: calc(var(--text-1) * var(--lh-body) * 4);
+}
+
+.timeline-track[data-lanes="4"] {
+  min-height: calc(var(--text-1) * var(--lh-body) * 5);
+}
+
+.timeline-track[data-lanes="5"] {
+  min-height: calc(var(--text-1) * var(--lh-body) * 6);
+}
+
+.timeline-track[data-lanes="6"] {
+  min-height: calc(var(--text-1) * var(--lh-body) * 7);
+}
+
+/* Timeline year ticks (W10.S1 class contract, markup arrives in W10.S4):
+   absolutely positioned year labels sitting on the track axis, the tick
+   itself drawn as a hairline border (never a box-shadow). */
+
+.timeline-tick {
+  position: absolute;
+  top: 50%;
+  color: var(--muted);
+  font-size: var(--text-1);
+  line-height: var(--lh-body);
+  white-space: nowrap;
+  border-left: 1px solid var(--hairline);
+  padding: 0 0 0 var(--sp-1);
+}
+
 /* Floating panels and overlay (glass hosts, C43) */
 
 #compare-tray {
@@ -472,6 +606,52 @@ body:has(.tray-docked:not([hidden])) #app {
   margin: var(--sp-4) 0 0;
 }
 
+/* Scenario ranked results (W10.S1 class contract for scenario.js markup).
+   List semantics stay on the ol, but the marker is suppressed: each li
+   already carries its own .rank span, so the marker would print the rank
+   twice. Below 720px the rank sits in a left column with the name,
+   ranking value, and formula stacked beside it; the >=720px rules in the
+   media query below spread name and ranking value onto one row with the
+   formula on its own line. */
+
+.scenario-ranked {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.scenario-ranked li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0 var(--sp-3);
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.scenario-ranked li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.scenario-ranked .rank {
+  grid-row: 1 / span 3;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.scenario-ranked .model-name {
+  font-weight: 600;
+}
+
+.scenario-ranked .ranking-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.scenario-ranked .cost-formula {
+  color: var(--muted);
+  font-size: var(--text-1);
+}
+
 #model-overlay {
   position: fixed;
   top: var(--sp-6);
@@ -489,6 +669,11 @@ body:has(.tray-docked:not([hidden])) #app {
    hosts per amended C43: background/shadow come only from the .glass class
    applied in Wave 8 markup, never from these rules. */
 
+.game-modes {
+  list-style: none;
+  padding: 0;
+}
+
 #game-cards {
   display: grid;
   gap: var(--sp-3);
@@ -498,12 +683,61 @@ body:has(.tray-docked:not([hidden])) #app {
   margin: 0 0 var(--sp-4);
 }
 
-/* Option cards: full column width, thumb-tappable height (C71). */
+/* Option cards: full column width, thumb-tappable height (C71), restyled
+   as ghost cards (W11.S1): solid surface, ink text, hairline border, so
+   the accent is reserved for the chosen/correct outlines below. */
 
 #game-cards button {
   width: 100%;
   min-height: var(--sp-8);
   margin: 0;
+  color: var(--ink);
+  background: var(--surface-solid);
+  border-color: var(--hairline);
+  transform: translateY(0) scale(1);
+  transition: color var(--dur) ease-out, border-color var(--dur) ease-out,
+    transform var(--dur) ease-out;
+}
+
+#game-cards button:hover:enabled {
+  border-color: var(--accent);
+}
+
+/* Post-answer card states: the chosen card presses in, the correct card
+   states in --success and lifts on --shadow-raised (W13.S1 choreography;
+   the shadow itself is the single amended-C45 rule further down). */
+
+#game-cards button.card-picked {
+  border-color: var(--accent);
+  transform: translateY(0) scale(0.99);
+}
+
+#game-cards button.card-correct {
+  border-color: var(--success);
+  outline: 2px solid var(--success);
+  outline-offset: 2px;
+  background: var(--accent-soft);
+  transform: translateY(calc(-1 * var(--sp-1))) scale(1);
+}
+
+/* In-card revealed value (W11.S3 markup). */
+
+.card-value {
+  display: block;
+  font-size: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  margin: var(--sp-1) 0 0;
+}
+
+/* The question is the game's hero line (W11.S1/W11.S3). */
+
+.game-prompt {
+  font-family: var(--font-display);
+  font-size: var(--text-4);
+  line-height: var(--lh-head);
+  color: var(--ink);
+  margin: 0 0 var(--sp-4);
 }
 
 /* Streak (endless) or "q of M" progress (daily) display. */
@@ -515,6 +749,25 @@ body:has(.tray-docked:not([hidden])) #app {
   margin: 0 0 var(--sp-3);
 }
 
+/* The streak is what an endless run is playing for, so the count is the
+   figure and the label stays quiet beside it (W13.S1 for W13.S3 markup). */
+
+.game-streak {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--text-4);
+  line-height: var(--lh-head);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Beating your best is the one moment endless has: state it in --success
+   rather than inventing a colour for it. */
+
+.game-streak.streak-best {
+  color: var(--success);
+}
+
 /* Post-answer reveal block: real values, formula strings (C60/C71). */
 
 .game-reveal {
@@ -522,6 +775,7 @@ body:has(.tray-docked:not([hidden])) #app {
   border-radius: var(--r-s);
   padding: var(--sp-3);
   margin: 0 0 var(--sp-3);
+  animation: reveal-in var(--dur-slow) ease-out;
 }
 
 /* Next-question control. */
@@ -554,12 +808,58 @@ body:has(.tray-docked:not([hidden])) #app {
   margin: 0 0 var(--sp-2);
 }
 
-/* Glass (C43, C44, C45): solid fallback base, one shadow declaration,
-   backdrop-filter only inside the single @supports block below. */
+/* Answer state colors (STEP 3). The correct card states in --success and
+   the wrong pick in --danger, so correctness never rests on opacity or an
+   emoji glyph alone. Fills use --accent-soft; text keeps --ink so the C39
+   contrast guarantee on body text is untouched. */
+
+#game-cards button.card-correct .card-value,
+.game-verdict.verdict-correct {
+  color: var(--success);
+}
+
+#game-cards button.card-wrong {
+  border-color: var(--danger);
+  background: var(--accent-soft);
+}
+
+#game-cards button.card-wrong .card-value,
+.game-verdict.verdict-wrong {
+  color: var(--danger);
+}
+
+/* Results squares as token-colored elements (STEP 3). The C68 share
+   string keeps its emoji squares; only the screen rendering is tokenized. */
+
+.game-squares span {
+  display: inline-block;
+  width: var(--sp-4);
+  height: var(--sp-4);
+  border-radius: var(--r-s);
+}
+
+.game-squares span[data-correct="true"] {
+  background: var(--success);
+}
+
+.game-squares span[data-correct="false"] {
+  background: var(--danger);
+}
+
+/* Glass (C43, C44, C45 as amended): solid fallback base, the glass shadow
+   declaration, backdrop-filter only inside the single @supports block. */
 
 .glass {
   background: var(--surface-solid);
   box-shadow: var(--shadow-glass);
+}
+
+/* The single --shadow-raised declaration (amended C45): the raised
+   surfaces are the model overlay and the correct-answer card. */
+
+#model-overlay,
+#game-cards button.card-correct {
+  box-shadow: var(--shadow-raised);
 }
 
 @supports (backdrop-filter: blur(12px)) {
@@ -571,9 +871,38 @@ body:has(.tray-docked:not([hidden])) #app {
 
 /* Motion (C46) */
 
+/* The single keyframe (amended C46): the reveal fade, used only by the
+   game reveal and card-state rules. W13.S1 owns its choreography. */
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Stagger (W13.S1): the second card's value lands one --dur after the
+   first, so the pair reads left to right instead of arriving as a block.
+   Delays are token durations, so reduced motion zeroes them too. */
+
+#game-cards button:first-child .card-value {
+  animation-delay: 0ms;
+}
+
+#game-cards button:nth-child(2) .card-value {
+  animation-delay: var(--dur);
+}
+
+#game-cards .card-value {
+  animation: reveal-in var(--dur-slow) ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
     --dur: 0ms;
+    --dur-slow: 0ms;
   }
 }
 
@@ -585,7 +914,12 @@ body:has(.tray-docked:not([hidden])) #app {
   }
 
   #site-header {
+    gap: var(--sp-4);
     padding: var(--sp-3) var(--sp-6);
+  }
+
+  #site-header nav {
+    gap: var(--sp-3);
   }
 
   footer {
@@ -628,6 +962,25 @@ body:has(.tray-docked:not([hidden])) #app {
 
   #game-cards {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .scenario-ranked li {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    column-gap: var(--sp-4);
+  }
+
+  .scenario-ranked .rank {
+    grid-row: 1 / span 2;
+  }
+
+  .scenario-ranked .ranking-value {
+    grid-row: 1;
+    grid-column: 3;
+  }
+
+  .scenario-ranked .cost-formula {
+    grid-row: 2;
+    grid-column: 2 / -1;
   }
 
   .tray-docked {

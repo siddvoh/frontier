@@ -198,8 +198,15 @@ describe("#game-results screen", () => {
 // ---------- W1.S2 / W5.S1 invariants stay pinned (C73, C44, C45) ----------
 
 describe("stylesheet invariants stay pinned", () => {
-  it("still exactly one box-shadow and two backdrop-filter mentions", () => {
-    expect(styles.match(/box-shadow/g)).toHaveLength(1);
+  it("box-shadow is the two token references, backdrop-filter unchanged", () => {
+    // Amended C45: the glass shadow plus the one --shadow-raised rule.
+    expect(styles.match(/box-shadow/g)).toHaveLength(2);
+    expect(
+      styles.match(/box-shadow\s*:\s*var\(--shadow-glass\)\s*;/g)
+    ).toHaveLength(1);
+    expect(
+      styles.match(/box-shadow\s*:\s*var\(--shadow-raised\)\s*;/g)
+    ).toHaveLength(1);
     expect(styles.match(/backdrop-filter/g)).toHaveLength(2);
   });
 
@@ -225,10 +232,9 @@ describe("stylesheet invariants stay pinned", () => {
     expect(styles).not.toMatch(/color-mix/i);
   });
 
-  it("game rules add no transitions (motion stays scoped per W5.S1)", () => {
+  it("game rules add no transitions beyond the card press (W5.S1 scoping)", () => {
     for (const sel of [
       "#game-cards",
-      "#game-cards button",
       ".game-progress",
       ".game-reveal",
       ".game-next",
@@ -240,5 +246,14 @@ describe("stylesheet invariants stay pinned", () => {
       expect(block, sel).not.toBeNull();
       expect(block, sel).not.toContain("transition");
     }
+    // The one exception, added by W13.S1: the answer card presses in.
+    // It transitions color, border-color, and transform, nothing else.
+    const card = ruleBlock(styles, "#game-cards button");
+    expect(card).not.toBeNull();
+    const transition = card.match(/transition\s*:\s*([^;]+);/);
+    expect(transition).not.toBeNull();
+    expect(
+      transition[1].split(",").map((p) => p.trim().split(/\s+/)[0])
+    ).toEqual(["color", "border-color", "transform"]);
   });
 });

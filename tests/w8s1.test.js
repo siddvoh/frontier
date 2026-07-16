@@ -187,8 +187,29 @@ function shown(view) {
   };
 }
 
+/**
+ * The progress display as "Streak N · Best M".
+ *
+ * W13.S3 made the count the focal figure and the rest a quiet label, so
+ * the display is structured markup rather than one string. This reads it
+ * back into the same assertion shape: the streak comes from the focal
+ * count, the best from the label (or from storage while the label is
+ * showing the beaten-best celebration, which states no number).
+ */
 function progressText(view) {
-  return view.querySelector(".game-progress").textContent;
+  const progress = view.querySelector(".game-progress");
+  const streak = progress.querySelector(".game-streak").textContent;
+  const label = progress.querySelector(".game-streak-label").textContent;
+  const best = label.startsWith("Streak · Best ")
+    ? label.slice("Streak · Best ".length)
+    : String(getBestStreak());
+  return `Streak ${streak} · Best ${best}`;
+}
+
+/** True when the display is celebrating a beaten best (W13.S3). */
+function celebrating(view) {
+  const count = view.querySelector(".game-progress .game-streak");
+  return count.classList.contains("streak-best");
 }
 
 function answer(view, index) {
