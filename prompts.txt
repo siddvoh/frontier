@@ -1,0 +1,103 @@
+Prompt 1:
+
+We're building Frontier. It is a static website that's a reference explorer and decision engine for frontier AI models, GPT-4 (Mar 2023) through Claude Fable 5 (Jun 2026), Muse Spark 1.1 (July 2026), GPT-5.6 (July 2026) and Grok 4.5 (July 2026). This spec is the base system only. A game extension we will add later so keep the data layer reusable but put nothing game-related in the spec.
+
+Constraints: I dont wanna bear any cost for this system ever. GitHub Pages serving from docs/ on main (so all paths relative). No server, no accounts, no frameworks, no chart libraries. Vanilla JS, vitest for tests, npm test is "vitest run --passWithNoTests".
+
+The pieces would include  a data pipeline merging a committed Epoch AI CSV snapshot (CC-BY, credit them) with a hand-curated JSON of pricing, context windows, GPQA and SWE-bench scores, and open/closed weights for ~40 models plus a hand-written events file for story moments like the Fable 5 export suspension. One merged models.json is the single source of truth, schema-validated, refreshed nightly by a GitHub Action that must never commit invalid output. A scenario engine of pure functions: given budget, task type, token volumes, and constraints, return qualifying models with computed costs, shown math, ranked by the task-relevant benchmark. An explorer UI: filterable sortable catalog, model cards with events, 2-3 way compare with simple bars, a horizontal timeline strip.
+
+Look and feel: calm, premium, editorial, maybe see liquid glass thingie from Apple, one amber accent, strict type scale, nice spacing grid, mobile-first with one relevant breakpoint, no gradients or shadows, reduced-motion respected. Encode the design system as hard, checkable constraints in the spec, exact tokens n all; propose the token values and I'll approve them.
+
+An autonomous agent loop builds from this spec slice by slice with a fresh context each iteration and a critic verifies the result against the spec by execution. So every acceptance criterion must be checkable by a command, a test, or an inspection an agent can perform. Nothing subjective pls. The spec is a contract a machine gets held to.
+
+Ask me as many questions as you have, one batch at a time, until nothing material is open. Then write SPEC.md, under 500 lines, numbered criteria, exact model-record JSON schema (not included in lines limit), non-goals section, definition of done.
+
+------------------------------------------------------------------------
+
+Prompt 2:
+
+ok go ahead but few changes are needed. the glass thing, I actually do want the liquid glass look, so keep it. but only on 3 places: sticky header, the floating panels (compare tray + scenario results), and the model card overlay. nowhere else. make that a greppable rule.also glass needs a fallback. backdrop-filter stuff goes inside @supports, and outside it use a solid near-opaque version of the surface token. text on glass should still hit 4.5:1 against the solid fallback since thats the worst case. you banned box-shadow completely but floating glass panels NEED some seperation from the content behind. so one shadow token in tokens.css, subtle, only allowed on those same 3 glass components. everywhere else still banned. add a test that every color token exists in both light and dark blocks so we dont ship one theme with a missing var. ALSO V IMP add a scripts/screenshot.js using playwright as a devDependency. npm run shots, NOT part of npm test, the loop never touches it. it serves docs/, screenshots each route (#/catalog, #/model/:id with a seeded model, #/compare, #/scenario) at 375x812 and 1440x900, both themes, dumps pngs into shots/ (gitignored). no pixel assertions no diffing, its just for me to eyeball. acceptance criteria is only that it runs and produces the 16 pngs. everything else approved as you proposed. write SPEC.md now.
+
+------------------------------------------------------------------------
+
+Prompt 3:
+
+add to C51 that the workflow declares permissions contents: write otherwise the push step will fail on default token perms.
+
+------------------------------------------------------------------------
+
+Prompt 4:
+
+/insights
+
+------------------------------------------------------------------------
+
+Prompt 5:
+
+read SPEC.md sections 12.2, 12.3 and 13. I need the seed data files. use web search to find official pricing pages and announcements for these 5 models: gpt-4 (original march 2023), claude-fable-5, muse-spark-1.1, gpt-5.6, grok-4.5. write data/curated.json with real sourced values only, and put the source url per model in data/curated-sources.md. anything you cant find on an official page stays null, dont guess a single number. set epochName only where you can see the exact name in data/epoch_notable_ai_models.csv, otherwise null. also write data/events.json with 2 events: the fable 5 export control suspension (june 12 2026) and the restoration (july 1 2026), keep bodies to a short paragraph. both files must match the spec schemas exactly.
+
+------------------------------------------------------------------------
+
+Prompt 6:
+
+ok policy change. the all null benchmark column defeats the whole point of the product, whats even the point of a comparison site with nothing to compare
+
+1. amend SPEC.md C10 wording: curated.json values are hand-verified by me from official lab pricing/announcement pages OR from a named independent leaderboard (vals.ai, epoch.ai, artificialanalysis.ai), with a source url recorded per value in data/curated-sources.md. still zero invented or estimated numbers, and never average conflicting sources - if sources conflict record both in curated-sources.md and leave the field null, ill decide.
+
+2. now be exhaustive. for all 5 models use web search to fill BOTH benchmark columns (gpqaDiamond, swebenchVerified) plus any missing releaseDate from the allowed sources. record the exact url per value. i already kno some of these so crosscheck yourself: gpt-4 releaseDate 2023-03-14, fable 5 swebenchVerified 95.0 (anthropic launch + vals.ai), grok 4.5 releaseDate 2026-07-08 and swebench 86.6 (vals.ai), gpt 5.6 sol releaseDate 2026-07-09 GA (was announced jun 26 as limited preview, note in curated-sources.md that releaseDate = general availability as the convention). openai hasnt published gpqa or swebench for the 5.6 family at all so those stay null, dont force it.
+
+3. muse spark pricing leave null, ill verify the 1.25/4.25 on metas portal in my browser myself and fill it in.
+
+4. rerun the schema checks after and show me a table of every cell thats still null with one line each on why its null.
+
+------------------------------------------------------------------------
+
+Prompt 7:
+
+/insights
+
+------------------------------------------------------------------------
+
+Prompt 8:
+
+the critic passed but the site has real visual problems. run npx playwright install chromium if needed, then npm run shots, and look at all 16 pngs in shots/ carefully. also here is what i saw on my machine: Overlapping pages, overlapping models, terrible animations, terrible colours, color scheme is not followed. I asked you to make premium, I asked for liquid last, nothing is there, absolutely nothing, and this is pretty terrible work. So, can you use maybe play right? Use my local machine if you have to see what is wrong and only after you check every single thing using playwright, using the UI.
+
+then append a new wave to PLAN.md (next unused number) with one slice per real defect, standard slice format, files: scoped to the css/view files each fix touches, same-wave slices file-disjoint as always. add this standing rule to the top of PLAN.md: any slice touching docs/css or a view file must run npm run shots after the change and visually inspect the relevant pngs before flipping its box - layout defects visible in a screenshot mean the slice is not done, even if npm test is green. do not touch the test gate, playwright stays out of npm test.
+
+also check whether dark mode actually works by comparing the light and dark pngs - if theyre identical thats a defect slice too.
+
+dont fix anything in this session, just look, diagnose, and write the wave. show me the wave before committing.
+
+------------------------------------------------------------------------
+
+Prompt 9:
+
+step 2 time. 
+
+read SPEC.md fully first - the base is built and deployed, now we add the game extension. append a new top-level section STEP 2: GAME to SPEC.md, do not modify any step 1 criteria. same rules as before: numbered criteria continuing from C54, every one checkable by command/test/inspection, nothing subjective, no invented data, everything static and free.
+
+what the game is: "higher or lower" for AI models, built entirely on the existing models.json and the scenario engine. two question families. stat questions: show two models, ask which is higher on a named field (either price, context window, gpqa, swebench, or which released first) - only valid when both models have the field non-null and the values actually differ. scenario questions: reuse the engine - generator picks a budget and token volumes such that exactly one of the two shown models qualifies, question is "which one fits the budget", reveal shows both computed costs using the existing C26 formula strings. at least 8 question templates total. every question is a plain object {id, templateId, prompt, optionA, optionB, correctIndex, revealData} and must be reproducible from (seed, models.json) - same seed same models means identical question, thats a test.
+
+modes: endless mode with a running streak and best streak. daily mode: seed is derived from the utc date string YYYY-MM-DD through a small seeded prng (mulberry32 or similar, specify it exactly), everyone on earth gets the same 10 questions, no server. one recorded play per day. persistence in localStorage under one key frontier.game.v1, schema specified in the spec, corrupt or missing storage degrades gracefully to a fresh state, never crashes.
+
+sharing: results screen builds the string "Frontier #N X/10" followed by 10 green/red square emoji matching the answers, where N is days since a launch date constant. copy button using the clipboard api with a fallback. no share cards for now, just the string.
+
+ui: a new hash route #/game with a mode picker, question screen (two big tappable cards, obviously tappable on a phone), reveal state showing the real numbers and for scenario questions both cost formulas, streak/score display, daily results screen with the share string. reuses the existing design tokens, glass rules, MISSING constant, all step 1 design criteria apply to the new views. question data comes only from the single existing fetch - no new fetch sites.
+
+surprises: data/surprises.json, hand-written by me like curated.json (same authorship protection as C10), listing model-id pairs plus a field where the intuitive answer is wrong. daily mode must include at least 2 surprise-derived questions when the pool allows. seed the file with 1 real pair you can verify from the committed data (eg an older or cheaper model beating a newer one on some field) and ill expand it.
+
+the word-ban from step 1 non-goals (no game features) obviously lifts for the new code, amend that non-goal line to say step 1 views stay game-free but #/game is the sanctioned home.
+
+testing: same philosophy - question generator, seeding determinism (same date = same 10 question ids, different dates differ), streak logic, storage schema round-trip, share string exact format, all under vitest/jsdom in npm test. playwright shots: add the game routes (mode picker, a question, a reveal, daily results) to scripts/screenshot.js viewports/themes, still outside npm test. and keep the standing rule from the cleanup wave: any slice touching css or views runs npm run shots and eyeballs the pngs before calling itself done.
+
+ask me whatever is genuinely open after reading the existing spec, then write the section.
+
+------------------------------------------------------------------------
+
+Prompt 10:
+
+one gap: define pre-launch daily behavior. if todayUTC < LAUNCH_DATE, #/game/daily renders a "daily starts <date>" notice instead of a game, no storage writes. add it as a criterion with a jsdom test using a fixed pre-launch date.
+
+------------------------------------------------------------------------
+
+The plan loop and build loop prompts are in sidd.sh. Each loop iteration feeds them verbatim to a fresh agent.
