@@ -12,6 +12,30 @@ Claude Fable 5.2,Anthropic,2026-11-09,"Language,Multimodal,Vision","Language mod
 https://x.com/claudeai/status/2119867114450268322",Claude Fable 5.2 and Mythos 5.2,,,"We’ve upgraded Claude Fable and Claude Mythos—models that are designed to tackle the most daunting technical challenges.
 
 Claude Fable 5.2 and Claude Mythos 5.2 show improvements in areas like coding, reasoning, and vision. During prerelease testing they’ve helped our engineers complete otherwise-infeasible software migrations, designed three working electronic devices from scratch, solved two open problems in the physics of black holes, made substantial progress on robotics evaluations, and formalized the proof of Fermat’s Last Theorem in 30 hours—among many other applications we’ll discuss below.",Industry,United States of America,"SOTA improvement,Significant use,Training cost",,,,,,,,,,,,,,,,API access,,,,,,,,,,No
+Inkling 2 Small,Thinking Machines,2026-11-05,"Language,Vision,Multimodal","Language modeling/generation,Question answering,Image Understanding",594000000000.0,"594B total, 17B active",2.13418e+23,"Pre-training: 
+12554000000000 tokens * 17e9 active parameters = 2.13418e+23 FLOP.
+
+
+
+Hardware quantity is at least 2048, which was the count used for the RL run.",,12554000000000,,Likely,"https://thinkingmachines.ai/news/inkling-2-small/ 
+
+https://venturebeat.com/technology/thinking-machines-launches-inkling-2-small-with-near-frontier-performance-on-enterprise-benchmarks",Introducing Inkling 2 Small,,,"Today we are introducing our second model generation with Inkling 2 Small. It is a Mixture-of-Experts model with 594B total parameters, 17B active, and supports image inputs and variable effort.
+
+Inkling 2 Small far surpasses our previous models’ scores on the Artificial Analysis Intelligence Index with a score of 31, reflecting gains in performance on agentic coding, vision, knowledge work, and reasoning. The increase in capabilities comes from improvements made at every step of our training process, including more efficient pre-training and a large, unified RL run.",Industry,United States of America,Training cost,FLOP count implies over $1M cost.,,,"""Inkling 2 Small’s initial pretraining phase [...] ran for 68 hours on NVIDIA GB300 NVL72 racks,""
+
+
+""We then carried out a joint RL run, consisting of 1,075 steps and over 17 million rollouts over 9 days. """,NVIDIA GB300 (Blackwell Ultra),2048.0,,,,5551438.712653738,,,,,,Open weights (unrestricted),,,Apache 2.0 license,NVFP4,,110055036.75731787,,,,Yes
+Ripple-65B Preview,Ricursive Intelligence,2026-11-04,Language,"Language modeling/generation,Question answering,Coding",65000000000.0,65B dense,4.83717e+24,"Training stage token counts from table on HF page.
+Pretrain: 12T
+Midtrain: 200B
+Long context: 6.5B
+SFT: 183B
+LC SFT: 13.5B
+Total = 1.2403e13 tokens
+
+6 * 65e9 * 1.2403e13 = 4.83717e+24 FLOP",,,,Likely,"https://www.ricursive.com/ripple
+
+https://huggingface.co/ricursiveAI/Ripple-65B-Preview ","Introducing Ripple-65B Preview, a Frontier Open-Weight Model",,,"[...] Today, we release Ripple-65B Preview, a general-purpose variant of the proprietary model that powers our AI chip design platform. The model is pretrained on 12 trillion tokens with support for up to 1M context length. Ripple-65B Preview delivers strong results on agentic coding, achieving U.S. open-weight state-of-the-art (80.52) on TerminalBench 2.1 and surpassing significantly larger US open-weight models such as Reflection Beam 501B (80.1), Meta Muse Spark Open 816B (76.4), Thinking Machines Inkling 975B (63.8), and NVIDIA Nemotron 3 Ultra 550B (56.4).",Industry,,Discretionary,,,,,,,,,,,,,,,,Open weights (unrestricted),,,Apache 2.0 license,,,,,,,Yes
 MAI-Base-2,Microsoft,2026-10-15,"Language,Vision,Multimodal",Language modeling/generation,2800000000000.0,"""80 billion active and 2.8 trillion total parameters.""",2.4e+25,"6 * 80e9 active parameters * 50e12 tokens  = 2.4e25.
 
 21% MFU based on GB200's peak flosp",,,,Confident,https://microsoft.ai/pdf/Frontier-Pre-training-at-Microsoft-AI.pdf?v=2,Frontier Pre-training at Microsoft AI,,,"In June, we announced MAI-Thinking-1, a general-purpose foundation model post-trained on top of MAI-Base-1 with strong reasoning performance. We’ve recently completed pre-training our new state-of-the-art model, MAI-Base-2, an MoE foundation model with 80 billion active and 2.8 trillion total parameters.",Industry,United States of America,Training cost,"Trained on 16000 Blackwell GPUs over 38 days, or ~15M GPU-hours, so likely >$50M training cost",,912.0,"""We trained MAI-Base-2 on 16k GB200 GPUs over 38 days""",NVIDIA GB200,16000.0,0.21,,,37192201.92758098,,,,,,Unreleased,Unreleased,,,FP8,,656145623.1160971,,,,No
